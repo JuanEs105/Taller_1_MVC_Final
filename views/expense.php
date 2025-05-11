@@ -3,10 +3,58 @@
     
     <?php if ($message): ?>
         <div class="alert alert-<?= $message['success'] ? 'success' : 'danger' ?>">
-            <?= htmlspecialchars($message['message']) ?>
+            <?= $message['message'] ?>
         </div>
     <?php endif; ?>
     
+    <!-- Formulario de Edición (se muestra solo cuando está en modo edición) -->
+    <?php if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($expenseToEdit)): ?>
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2>Modificar Gasto Existente</h2>
+        </div>
+        <div class="card-body">
+            <form action="index.php?controller=expense&action=update" method="post">
+                <input type="hidden" name="id" value="<?= $expenseToEdit['id'] ?>">
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Categoría</label>
+                            <select name="category" class="form-control" required>
+                                <option value="">Seleccione...</option>
+                                <?php foreach ($categories as $category): ?>
+                                    <option value="<?= $category['id'] ?>" 
+                                        <?= $category['id'] == $expenseToEdit['category_id'] ? 'selected' : '' ?>>
+                                        <?= $category['name'] ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Valor</label>
+                            <input type="number" name="value" class="form-control" step="0.01" min="0.01" 
+                                   value="<?= number_format($expenseToEdit['value'], 2, '.', '') ?>" required>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="form-group w-100">
+                            <button type="submit" class="btn btn-primary w-100">Actualizar Gasto</button>
+                            <a href="index.php?controller=expense" class="btn btn-secondary w-100 mt-2">Cancelar</a>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <?php endif; ?>
+    
+    <!-- Formulario de Registro (se oculta cuando está en modo edición) -->
+    <?php if (!isset($_GET['action']) || $_GET['action'] != 'edit' || !isset($expenseToEdit)): ?>
     <div class="card mb-4">
         <div class="card-header">
             <h2>Registrar Nuevo Gasto</h2>
@@ -43,7 +91,7 @@
                                 <option value="">Seleccione...</option>
                                 <?php foreach ($categories as $category): ?>
                                     <option value="<?= $category['id'] ?>" <?= isset($_POST['category']) && $_POST['category'] == $category['id'] ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($category['name']) ?>
+                                        <?= $category['name'] ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -63,7 +111,9 @@
             </form>
         </div>
     </div>
+    <?php endif; ?>
     
+    <!-- Listado de Gastos -->
     <div class="card">
         <div class="card-header">
             <h2>Gastos Registrados</h2>
@@ -87,10 +137,10 @@
                         <tbody>
                             <?php foreach ($expenses as $expense): ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($expense['id']) ?></td>
-                                    <td><?= htmlspecialchars($expense['category_name']) ?></td>
-                                    <td><?= htmlspecialchars($expense['month']) ?></td>
-                                    <td><?= htmlspecialchars($expense['year']) ?></td>
+                                    <td><?= $expense['id'] ?></td>
+                                    <td><?= $expense['category_name'] ?></td>
+                                    <td><?= $expense['month'] ?></td>
+                                    <td><?= $expense['year'] ?></td>
                                     <td>$<?= number_format($expense['value'], 2, ',', '.') ?></td>
                                     <td>
                                         <a href="index.php?controller=expense&action=edit&id=<?= $expense['id'] ?>" 

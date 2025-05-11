@@ -1,5 +1,4 @@
 <?php
-// Incluir controladores necesarios
 require_once 'controllers/IncomeController.php';
 require_once 'controllers/ExpenseController.php';
 
@@ -14,9 +13,7 @@ unset($_SESSION['message']);
 // Inicializar controladores
 $incomeController = new IncomeController();
 $expenseController = new ExpenseController();
-
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -37,7 +34,7 @@ $expenseController = new ExpenseController();
 
         <?php if ($message): ?>
             <div class="alert alert-<?= $message['success'] ? 'success' : 'danger' ?>">
-                <?= htmlspecialchars($message['message']) ?>
+                <?= $message['message'] ?>
             </div>
         <?php endif; ?>
 
@@ -110,13 +107,21 @@ $expenseController = new ExpenseController();
                             case 'edit':
                                 if (isset($_GET['id'])) {
                                     $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
-                                    
-                                    $expense = $expenseController->getExpenseById($id);
-                                    if (!$expense) {
-                                        $_SESSION['message'] = ['success' => false, 'message' => 'Gasto no encontrado.'];
+                                    if ($id === false) {
+                                        $_SESSION['message'] = ['success' => false, 'message' => 'ID de gasto inválido'];
                                         header('Location: index.php?controller=expense');
                                         exit;
                                     }
+                                    
+                                    $expenseToEdit = $expenseController->getExpenseById($id);
+                                    if (!$expenseToEdit) {
+                                        $_SESSION['message'] = ['success' => false, 'message' => 'Gasto no encontrado'];
+                                        header('Location: index.php?controller=expense');
+                                        exit;
+                                    }
+                                    
+                                    // Obtener categorías para el select
+                                    $categories = $expenseController->getAllCategories();
                                 }
                                 break;
                                 
@@ -126,7 +131,12 @@ $expenseController = new ExpenseController();
                                     $category = filter_input(INPUT_POST, 'category', FILTER_VALIDATE_INT);
                                     $value = filter_input(INPUT_POST, 'value', FILTER_VALIDATE_FLOAT);
                                     
-                                    $_SESSION['message'] = $expenseController->updateExpense($id, $category, $value);
+                                    if ($id === false || $category === false || $value === false) {
+                                        $_SESSION['message'] = ['success' => false, 'message' => 'Datos inválidos'];
+                                    } else {
+                                        $_SESSION['message'] = $expenseController->updateExpense($id, $category, $value);
+                                    }
+                                    
                                     header('Location: index.php?controller=expense');
                                     exit;
                                 }
@@ -143,8 +153,12 @@ $expenseController = new ExpenseController();
                                 break;
                         }
                         
+                        // Obtener datos para la vista
                         $expenses = $expenseController->getAllExpenses();
-                        $categories = $expenseController->getAllCategories();
+                        if (!isset($categories)) {
+                            $categories = $expenseController->getAllCategories();
+                        }
+                        
                         include 'views/expense.php';
                         break;
                         
