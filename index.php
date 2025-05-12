@@ -1,19 +1,23 @@
 <?php
 require_once 'controllers/IncomeController.php';
 require_once 'controllers/ExpenseController.php';
+require_once 'controllers/CategoryController.php';
+require_once 'controllers/ReportController.php';
 
-// Configuración básica
+// Obtener parámetros de URL
 $controller = $_GET['controller'] ?? 'income';
 $action = $_GET['action'] ?? 'index';
-
-// Manejo de mensajes
-$message = $_SESSION['message'] ?? null;
-unset($_SESSION['message']);
 
 // Inicializar controladores
 $incomeController = new IncomeController();
 $expenseController = new ExpenseController();
+$categoryController = new CategoryController();
+$reportController = new ReportController();
+
+// Procesar mensajes
+$message = $_GET['message'] ?? null;
 ?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -25,158 +29,115 @@ $expenseController = new ExpenseController();
 <body>
     <div class="container">
         <header class="header">
-            <h1>Sistema de Gestión Financiera</h1>
+            <h1>Control Financiero</h1>
             <nav class="nav-tabs">
                 <a href="index.php?controller=income" class="<?= $controller == 'income' ? 'active' : '' ?>">Ingresos</a>
                 <a href="index.php?controller=expense" class="<?= $controller == 'expense' ? 'active' : '' ?>">Gastos</a>
+                <a href="index.php?controller=category" class="<?= $controller == 'category' ? 'active' : '' ?>">Categorías</a>
+                <a href="index.php?controller=report&action=form" class="<?= $controller == 'report' ? 'active' : '' ?>">Reportes</a>
             </nav>
         </header>
 
         <?php if ($message): ?>
-            <div class="alert alert-<?= $message['success'] ? 'success' : 'danger' ?>">
-                <?= $message['message'] ?>
+            <div class="alert <?= strpos($message, 'Error') === false ? 'alert-success' : 'alert-danger' ?>">
+                <?= htmlspecialchars($message) ?>
             </div>
         <?php endif; ?>
 
-        <div class="content">
+        <main class="content">
             <?php
-            try {
-                switch ($controller) {
-                    case 'income':
-                        // Manejo de acciones para ingresos
-                        switch ($action) {
-                            case 'register':
-                                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                                    $month = filter_input(INPUT_POST, 'month', FILTER_SANITIZE_STRING);
-                                    $year = filter_input(INPUT_POST, 'year', FILTER_VALIDATE_INT);
-                                    $value = filter_input(INPUT_POST, 'value', FILTER_VALIDATE_FLOAT);
-                                    
-                                    $_SESSION['message'] = $incomeController->registerIncome($month, $year, $value);
-                                    header('Location: index.php?controller=income');
-                                    exit;
-                                }
-                                break;
-                                
-                            case 'edit':
-                                if (isset($_GET['month']) && isset($_GET['year'])) {
-                                    $month = filter_input(INPUT_GET, 'month', FILTER_SANITIZE_STRING);
-                                    $year = filter_input(INPUT_GET, 'year', FILTER_VALIDATE_INT);
-                                    
-                                    $income = $incomeController->getIncomeByMonthYear($month, $year);
-                                    if (!$income) {
-                                        $_SESSION['message'] = ['success' => false, 'message' => 'Ingreso no encontrado.'];
-                                        header('Location: index.php?controller=income');
-                                        exit;
-                                    }
-                                }
-                                break;
-                                
-                            case 'update':
-                                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                                    $month = filter_input(INPUT_POST, 'month', FILTER_SANITIZE_STRING);
-                                    $year = filter_input(INPUT_POST, 'year', FILTER_VALIDATE_INT);
-                                    $value = filter_input(INPUT_POST, 'value', FILTER_VALIDATE_FLOAT);
-                                    
-                                    $_SESSION['message'] = $incomeController->updateIncome($month, $year, $value);
-                                    header('Location: index.php?controller=income');
-                                    exit;
-                                }
-                                break;
+            switch ($controller) {
+                case 'income':
+                    // Lógica para ingresos
+                    include 'views/incomes.php';
+                    break;
+                    
+                case 'expense':
+                    // Lógica para gastos
+                    include 'views/expense.php';
+                    break;
+                    
+                case 'category':
+                    // Manejo de categorías
+                    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+                        if ($action == 'register') {
+                            $name = $_POST['name'] ?? '';
+                            $percentage = (float)($_POST['percentage'] ?? 0);
+                            
+                            $result = $categoryController->registerCategory($name, $percentage);
+                            header('Location: index.php?controller=category&message='.urlencode($result['message']));
+                            exit;
+                        } 
+                        elseif ($action == 'update') {
+                            $id = (int)($_POST['id'] ?? 0);
+                            $name = $_POST['name'] ?? '';
+                            $percentage = (float)($_POST['percentage'] ?? 0);
+                            
+                            $result = $categoryController->updateCategory($id, $name, $percentage);
+                            header('Location: index.php?controller=category&message='.urlencode($result['message']));
+                            exit;
                         }
-                        
-                        $incomes = $incomeController->getAllIncomes();
-                        include 'views/incomes.php';
-                        break;
-                        
-                    case 'expense':
-                        // Manejo de acciones para gastos
-                        switch ($action) {
-                            case 'register':
-                                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                                    $category = filter_input(INPUT_POST, 'category', FILTER_VALIDATE_INT);
-                                    $month = filter_input(INPUT_POST, 'month', FILTER_SANITIZE_STRING);
-                                    $year = filter_input(INPUT_POST, 'year', FILTER_VALIDATE_INT);
-                                    $value = filter_input(INPUT_POST, 'value', FILTER_VALIDATE_FLOAT);
-                                    
-                                    $_SESSION['message'] = $expenseController->registerExpense($category, $month, $year, $value);
-                                    header('Location: index.php?controller=expense');
-                                    exit;
-                                }
-                                break;
-                                
-                            case 'edit':
-                                if (isset($_GET['id'])) {
-                                    $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
-                                    if ($id === false) {
-                                        $_SESSION['message'] = ['success' => false, 'message' => 'ID de gasto inválido'];
-                                        header('Location: index.php?controller=expense');
-                                        exit;
-                                    }
-                                    
-                                    $expenseToEdit = $expenseController->getExpenseById($id);
-                                    if (!$expenseToEdit) {
-                                        $_SESSION['message'] = ['success' => false, 'message' => 'Gasto no encontrado'];
-                                        header('Location: index.php?controller=expense');
-                                        exit;
-                                    }
-                                    
-                                    // Obtener categorías para el select
-                                    $categories = $expenseController->getAllCategories();
-                                }
-                                break;
-                                
-                            case 'update':
-                                if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                                    $id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
-                                    $category = filter_input(INPUT_POST, 'category', FILTER_VALIDATE_INT);
-                                    $value = filter_input(INPUT_POST, 'value', FILTER_VALIDATE_FLOAT);
-                                    
-                                    if ($id === false || $category === false || $value === false) {
-                                        $_SESSION['message'] = ['success' => false, 'message' => 'Datos inválidos'];
-                                    } else {
-                                        $_SESSION['message'] = $expenseController->updateExpense($id, $category, $value);
-                                    }
-                                    
-                                    header('Location: index.php?controller=expense');
-                                    exit;
-                                }
-                                break;
-                                
-                            case 'delete':
-                                if (isset($_GET['id'])) {
-                                    $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
-                                    
-                                    $_SESSION['message'] = $expenseController->deleteExpense($id);
-                                    header('Location: index.php?controller=expense');
-                                    exit;
-                                }
-                                break;
-                        }
-                        
-                        // Obtener datos para la vista
-                        $expenses = $expenseController->getAllExpenses();
-                        if (!isset($categories)) {
-                            $categories = $expenseController->getAllCategories();
-                        }
-                        
-                        include 'views/expense.php';
-                        break;
-                        
-                    default:
-                        header('Location: index.php?controller=income');
+                    }
+                    
+                    if ($action == 'delete' && isset($_GET['id'])) {
+                        $id = (int)$_GET['id'];
+                        $result = $categoryController->deleteCategory($id);
+                        header('Location: index.php?controller=category&message='.urlencode($result['message']));
                         exit;
+                    }
+                    
+                    // Verificación adicional para edición
+                    if ($action == 'edit' && isset($_GET['id'])) {
+                        $id = (int)$_GET['id'];
+                        if ($categoryController->isCategoryInUse($id)) {
+                            header('Location: index.php?controller=category&message='.urlencode('No se puede editar: categoría tiene gastos asociados'));
+                            exit;
+                        }
+                        $category = $categoryController->getCategoryById($id);
+                    }
+                    
+                    $categories = $categoryController->getAllCategories();
+                    include 'views/categories.php';
+                    break;
+                    
+                case 'report':
+    switch ($action) {
+        case 'form':
+            include 'views/forms/report_form.php';
+            break;
+            
+        case 'generate':
+            if (isset($_GET['month']) && isset($_GET['year'])) {
+                $month = $_GET['month'];
+                $year = (int)$_GET['year'];
+                
+                $reportController = new ReportController();
+                $result = $reportController->generateMonthlyReport($month, $year);
+                
+                if ($result['success']) {
+                    $reportData = $result['data'];
+                    include 'views/report.php';
+                } else {
+                    $error = $result['message'];
+                    include 'views/report.php';
                 }
-            } catch (PDOException $e) {
-                die("Error de base de datos: " . $e->getMessage());
-            } catch (Exception $e) {
-                die("Error: " . $e->getMessage());
+            }
+            break;
+            
+        default:
+            header('Location: index.php?controller=report&action=form');
+            exit;
+    }
+    break;
             }
             ?>
-        </div>
+        </main>
 
         <div class="quick-actions">
-            <a href="index.php?controller=income&action=register" class="btn btn-primary">Registrar Ingreso</a>
-            <a href="index.php?controller=expense&action=register" class="btn btn-secondary">Registrar Gasto</a>
+            <a href="index.php?controller=income&action=register" class="btn btn-primary">Nuevo Ingreso</a>
+            <a href="index.php?controller=expense&action=register" class="btn btn-secondary">Nuevo Gasto</a>
+            <a href="index.php?controller=category&action=register" class="btn btn-info">Nueva Categoría</a>
+            <a href="index.php?controller=report&action=form" class="btn btn-warning">Generar Reporte</a>
         </div>
     </div>
 </body>
