@@ -34,4 +34,3 @@ class Report {
         $this->year = $year;
     }
 }
-?>

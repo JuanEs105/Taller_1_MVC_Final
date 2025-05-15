@@ -44,4 +44,3 @@ class Expense {
         $this->idReport = $idReport;
     }
 }
-?>

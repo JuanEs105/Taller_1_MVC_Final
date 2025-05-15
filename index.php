@@ -4,41 +4,129 @@ require_once 'controllers/ExpenseController.php';
 require_once 'controllers/CategoryController.php';
 require_once 'controllers/ReportController.php';
 
-// Obtener parámetros de URL de forma segura
+header("X-Frame-Options: DENY");
+header("X-Content-Type-Options: nosniff");
+header("X-XSS-Protection: 1; mode=block");
+header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; img-src 'self' data:; connect-src 'self';");
+
 $controller = isset($_GET['controller']) ? strtolower($_GET['controller']) : 'income';
 $action = isset($_GET['action']) ? strtolower($_GET['action']) : 'index';
 
-// Validar controladores permitidos
 $allowedControllers = ['income', 'expense', 'category', 'report'];
 if (!in_array($controller, $allowedControllers)) {
-    $controller = 'income'; // Default controller
+    $controller = 'income';
 }
 
-// Inicializar controladores
 $incomeController = new IncomeController();
 $expenseController = new ExpenseController();
 $categoryController = new CategoryController();
 $reportController = new ReportController();
 
-// Procesar mensajes de forma segura (para non-AJAX redirects)
 $message_text = isset($_GET['message']) ? htmlspecialchars($_GET['message'], ENT_QUOTES, 'UTF-8') : null;
-$message_type = 'info'; // Default type, can be overridden based on context if needed
+$message_type = 'info';
 
 if ($message_text) {
-    // Basic check for error messages to style them differently
-    if (stripos($message_text, 'error') !== false || stripos($message_text, 'no encontrado') !== false) {
+    if (stripos($message_text, 'Error') !== false || stripos($message_text, 'no encontrado') !== false || stripos($message_text, 'inválido') !== false || stripos($message_text, 'permitidos') !== false) {
         $message_type = 'danger';
     } elseif (stripos($message_text, 'correctamente') !== false) {
         $message_type = 'success';
     }
 }
 
+if ($controller == 'report' && $action == 'view') {
+    $month = isset($_GET['month']) ? htmlspecialchars($_GET['month']) : null;
+    $year = isset($_GET['year']) ? filter_var($_GET['year'], FILTER_VALIDATE_INT) : null;
 
-// Configuración de seguridad
-header("X-Frame-Options: DENY");
-header("X-Content-Type-Options: nosniff");
-header("X-XSS-Protection: 1; mode=block");
-// Nota: La directiva CSP se establece en la sección <head> del HTML para mayor flexibilidad.
+    if ($month && $year !== false) {
+        $result = $reportController->generateMonthlyReport($month, $year);
+
+        if ($result['success']) {
+            $reportData = $result['data'];
+            ?>
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Reporte de <?= htmlspecialchars($month, ENT_QUOTES, 'UTF-8') ?> <?= htmlspecialchars($year, ENT_QUOTES, 'UTF-8') ?></title>
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+                <style>
+                    body { padding: 20px; }
+                    .table th, .table td { vertical-align: middle; }
+                    .badge { font-size: 0.9em; }
+                     @media print {
+                         .btn, .mb-3 { display: none !important; }
+                         .card { border: 1px solid #ccc; }
+                         .no-print { display: none !important; }
+                     }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                     <div class="row mb-3">
+                        <div class="col text-center">
+                           
+                            <h1>Reporte Financiero Mensual</h1>
+                            <h2><?= htmlspecialchars($reportData['month'] ?? '', ENT_QUOTES, 'UTF-8') ?> <?= htmlspecialchars($reportData['year'] ?? '', ENT_QUOTES, 'UTF-8') ?></h2>
+                        </div>
+                    </div>
+                    <?php include 'views/report.php'; ?>
+
+                     <div class="d-flex justify-content-center gap-3 mt-4 no-print">
+                        <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Imprimir / Guardar PDF</button>
+                        <a href="index.php?controller=report&action=form" class="btn btn-secondary"><i class="fas fa-arrow-circle-left"></i> Volver</a>
+                    </div>
+
+                </div>
+                 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+            </body>
+            </html>
+            <?php
+        } else {
+            ?>
+            <!DOCTYPE html>
+            <html lang="es">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Error al Generar Reporte</title>
+                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            </head>
+            <body>
+                <div class="container mt-5">
+                    <div class="alert alert-danger">
+                        <?= htmlspecialchars($result['message'], ENT_QUOTES, 'UTF-8') ?>
+                    </div>
+                    <a href="index.php?controller=report&action=form" class="btn btn-primary">Volver al Formulario de Reporte</a>
+                </div>
+            </body>
+            </html>
+            <?php
+        }
+    } else {
+        ?>
+        <!DOCTYPE html>
+        <html lang="es">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Error de Parámetros</title>
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        </head>
+        <body>
+            <div class="container mt-5">
+                <div class="alert alert-danger">
+                    Parámetros de mes o año inválidos para ver el reporte.
+                </div>
+                <a href="index.php?controller=report&action=form" class="btn btn-primary">Volver al Formulario de Reporte</a>
+            </div>
+        </body>
+        </html>
+        <?php
+    }
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
@@ -46,15 +134,24 @@ header("X-XSS-Protection: 1; mode=block");
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; img-src 'self' data:;">
     <title>Sistema de Gestión Financiera</title>
     <link rel="stylesheet" href="views/css/styles.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .text-danger {
+            font-size: 0.875em;
+            display: block;
+            margin-top: 0.25rem;
+        }
+         @media print {
+            .no-print { display: none !important; }
+        }
+    </style>
 </head>
 <body>
     <div class="container-fluid">
-        <header class="header bg-primary text-white p-3 mb-4 rounded">
+        <header class="header bg-primary text-white p-3 mb-4 rounded no-print">
             <h1 class="text-center">Control Financiero</h1>
             <nav class="nav nav-pills nav-fill">
                 <a href="index.php?controller=income" class="nav-link <?= $controller == 'income' ? 'active bg-white text-primary' : 'text-white' ?>">
@@ -72,8 +169,9 @@ header("X-XSS-Protection: 1; mode=block");
             </nav>
         </header>
 
-        <?php if ($message_text): ?>
-            <div id="globalMessage" class="alert alert-dismissible alert-<?= $message_type ?>">
+        <?php
+        if ($message_text): ?>
+            <div id="globalMessage" class="alert alert-dismissible alert-<?= $message_type ?> fade show no-print" role="alert">
                 <?= $message_text ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
@@ -83,174 +181,172 @@ header("X-XSS-Protection: 1; mode=block");
             <?php
             switch ($controller) {
                 case 'income':
-                    $incomes = $incomeController->getAllIncomes(); 
-                    $isEditForm = false; 
-                    $income = null; 
+                    $incomes = $incomeController->getAllIncomes();
+                    $isEditForm = false;
+                    $income = null;
 
                     if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         if ($action == 'register') {
-                            
                             $result = $incomeController->registerIncome(
-                                htmlspecialchars($_POST['month']),
-                                (int)$_POST['year'],
-                                (float)$_POST['value']
+                                $_POST['month'] ?? '',
+                                $_POST['year'] ?? 0,
+                                $_POST['value'] ?? 0.0
                             );
-                            
-                            if (isset($result) && !$result['success']) { // Redirect only if there's an error for non-ajax
-                                header('Location: index.php?controller=income&message='.urlencode($result['message']));
-                                exit;
-                            } elseif (isset($result) && $result['success']) { // Non-ajax success
-                                 header('Location: index.php?controller=income&message='.urlencode($result['message']));
-                                exit;
-                            }
-                            
+                             header('Location: index.php?controller=income&message='.urlencode($result['message']));
+                             exit;
                         }
                         elseif ($action == 'update') {
-                            // AJAX is not implemented for update in this example, so it works as before.
-                            $result = $incomeController->updateIncome(
-                                htmlspecialchars($_POST['month']), // Assuming month/year are PKs and POSTed
-                                (int)$_POST['year'],
-                                (float)$_POST['value']
+                             $result = $incomeController->updateIncome(
+                                $_POST['month'] ?? '',
+                                $_POST['year'] ?? 0,
+                                $_POST['value'] ?? 0.0
                             );
                             header('Location: index.php?controller=income&message='.urlencode($result['message']));
                             exit;
                         }
-                    } elseif ($_SERVER['REQUEST_METHOD'] == 'GET' && $action == 'edit') {
-                        if (isset($_GET['month']) && isset($_GET['year'])) {
-                            $isEditForm = true;
-                            $income = $incomeController->getIncomeByMonthYear(
-                                htmlspecialchars($_GET['month']),
-                                (int)$_GET['year']
-                            );
-                            if (!$income) {
-                                header('Location: index.php?controller=income&message='.urlencode('Error: Ingreso a modificar no encontrado.'));
+                    } elseif ($_SERVER['REQUEST_METHOD'] == 'GET') {
+                        if ($action == 'edit') {
+                             if (isset($_GET['month']) && isset($_GET['year'])) {
+                                $isEditForm = true;
+                                $income = $incomeController->getIncomeByMonthYear(
+                                    htmlspecialchars($_GET['month']),
+                                    (int)$_GET['year']
+                                );
+                                if (!$income) {
+                                    header('Location: index.php?controller=income&message='.urlencode('Error: Ingreso a modificar no encontrado o parámetros inválidos.'));
+                                    exit;
+                                }
+                            } else {
+                                 header('Location: index.php?controller=income&message='.urlencode('Error: Faltan parámetros para modificar el ingreso.'));
                                 exit;
                             }
-                        } else {
-                             header('Location: index.php?controller=income&message='.urlencode('Error: Faltan parámetros para modificar el ingreso.'));
-                            exit;
                         }
                     }
-                    
                     include 'views/incomes.php';
                     break;
-                    
+
                 case 'expense':
                     $categories = $expenseController->getAllCategories();
                     $expenses = $expenseController->getAllExpenses();
-                    $expenseToEdit = null; // Initialize
-                    
+                    $expenseToEdit = null;
+
                     if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         if ($action == 'register') {
                             $result = $expenseController->registerExpense(
-                                (int)$_POST['category'],
-                                htmlspecialchars($_POST['month']),
-                                (int)$_POST['year'],
-                                (float)$_POST['value']
+                                $_POST['category'] ?? 0,
+                                $_POST['month'] ?? '',
+                                $_POST['year'] ?? 0,
+                                $_POST['value'] ?? 0.0
                             );
                             header('Location: index.php?controller=expense&message='.urlencode($result['message']));
                             exit;
-                        } 
+                        }
                         elseif ($action == 'update') {
-                            $result = $expenseController->updateExpense(
-                                (int)$_POST['id'],
-                                (int)$_POST['category'],
-                                (float)$_POST['value']
+                             $result = $expenseController->updateExpense(
+                                $_POST['id'] ?? 0,
+                                $_POST['category'] ?? 0,
+                                $_POST['value'] ?? 0.0
                             );
                             header('Location: index.php?controller=expense&message='.urlencode($result['message']));
                             exit;
                         }
                     }
-                    
-                    if ($action == 'delete' && isset($_GET['id'])) {
-                        $result = $expenseController->deleteExpense((int)$_GET['id']);
-                        header('Location: index.php?controller=expense&message='.urlencode($result['message']));
-                        exit;
-                    }
-                    
-                    if ($action == 'edit' && isset($_GET['id'])) {
-                        $expenseToEdit = $expenseController->getExpenseById((int)$_GET['id']);
-                        if (!$expenseToEdit) {
-                            header('Location: index.php?controller=expense&message=Gasto no encontrado');
+                    elseif ($_SERVER['REQUEST_METHOD'] == 'GET') {
+                         if ($action == 'delete' && isset($_GET['id'])) {
+                            $result = $expenseController->deleteExpense($_GET['id']);
+                            header('Location: index.php?controller=expense&message='.urlencode($result['message']));
                             exit;
                         }
+
+                        if ($action == 'edit' && isset($_GET['id'])) {
+                            $expenseToEdit = $expenseController->getExpenseById($_GET['id']);
+                            if (!$expenseToEdit) {
+                                header('Location: index.php?controller=expense&message='.urlencode('Gasto no encontrado o ID inválido.'));
+                                exit;
+                            }
+                        }
                     }
-                    
-                    include 'views/expense.php'; 
+                    include 'views/expense.php';
                     break;
-                    
+
                 case 'category':
-                    $category = null; // Initialize
+                    $category = null;
+
                     if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-                        if ($action == 'register') {
+                         if ($action == 'register') {
                             $result = $categoryController->registerCategory(
-                                htmlspecialchars($_POST['name']),
-                                (float)$_POST['percentage']
+                                $_POST['name'] ?? '',
+                                $_POST['percentage'] ?? ''
                             );
                             header('Location: index.php?controller=category&message='.urlencode($result['message']));
                             exit;
-                        } 
+                        }
                         elseif ($action == 'update') {
                             $result = $categoryController->updateCategory(
-                                (int)$_POST['id'],
-                                htmlspecialchars($_POST['name']),
-                                (float)$_POST['percentage']
+                                $_POST['id'] ?? 0,
+                                $_POST['name'] ?? '',
+                                $_POST['percentage'] ?? ''
                             );
                             header('Location: index.php?controller=category&message='.urlencode($result['message']));
                             exit;
                         }
                     }
-                    
-                    if ($action == 'delete' && isset($_GET['id'])) {
-                        $result = $categoryController->deleteCategory((int)$_GET['id']);
-                        header('Location: index.php?controller=category&message='.urlencode($result['message']));
-                        exit;
-                    }
-                    
-                    if ($action == 'edit' && isset($_GET['id'])) {
-                        $category = $categoryController->getCategoryById((int)$_GET['id']);
-                        if (!$category) {
-                            header('Location: index.php?controller=category&message=Categoría no encontrada');
+                    elseif ($_SERVER['REQUEST_METHOD'] == 'GET') {
+                        if ($action == 'delete' && isset($_GET['id'])) {
+                            $result = $categoryController->deleteCategory($_GET['id']);
+                            header('Location: index.php?controller=category&message='.urlencode($result['message']));
                             exit;
                         }
+
+                        if ($action == 'edit' && isset($_GET['id'])) {
+                            $category = $categoryController->getCategoryById($_GET['id']);
+                            if (!$category) {
+                                header('Location: index.php?controller=category&message='.urlencode('Error: Categoría no encontrada o ID inválido.'));
+                                exit;
+                            }
+                        }
                     }
-                    
                     $categories = $categoryController->getAllCategories();
-                    include 'views/categories.php'; 
+                    include 'views/categories.php';
                     break;
-                    
+
                 case 'report':
                     switch ($action) {
                         case 'form':
                             include 'views/forms/report_form.php';
                             break;
-                            
+
                         case 'generate':
                             if (isset($_GET['month']) && isset($_GET['year'])) {
                                 $month = htmlspecialchars($_GET['month']);
-                                $year = (int)$_GET['year'];
-                                
+                                $year = filter_var($_GET['year'], FILTER_VALIDATE_INT);
+
+                                if ($year === false || $year < 1900 || $year > 2100) {
+                                     header('Location: index.php?controller=report&action=form&message='.urlencode('Error: Año inválido para el reporte.'));
+                                     exit;
+                                }
+
                                 $result = $reportController->generateMonthlyReport($month, $year);
-                                
+
                                 if ($result['success']) {
                                     $reportData = $result['data'];
-                                    include 'views/report.php'; // Pass $reportData
+                                    include 'views/report.php';
                                 } else {
                                     $error = $result['message'];
-                                    include 'views/report.php'; // Pass $error
+                                    include 'views/report.php';
                                 }
                             } else {
                                 header('Location: index.php?controller=report&action=form&message='.urlencode('Error: Mes y año son requeridos para generar el reporte.'));
                                 exit;
                             }
                             break;
-                            
+
                         default:
                             header('Location: index.php?controller=report&action=form');
                             exit;
                     }
                     break;
-                    
+
                 default:
                     header('Location: index.php?controller=income');
                     exit;
@@ -258,15 +354,15 @@ header("X-XSS-Protection: 1; mode=block");
             ?>
         </main>
 
-        <div class="quick-actions fixed-bottom mb-4 text-center">
+        <div class="quick-actions fixed-bottom mb-4 text-center no-print">
             <div class="btn-group" role="group">
-                <a href="index.php?controller=income" class="btn btn-primary">
+                <a href="index.php?controller=income&action=register" class="btn btn-primary">
                     <i class="fas fa-plus-circle"></i> Nuevo Ingreso
                 </a>
-                 <a href="index.php?controller=expense" class="btn btn-secondary">
+                 <a href="index.php?controller=expense&action=register" class="btn btn-secondary">
                     <i class="fas fa-minus-circle"></i> Nuevo Gasto
                 </a>
-                <a href="index.php?controller=category" class="btn btn-info">
+                <a href="index.php?controller=category&action=register" class="btn btn-info">
                     <i class="fas fa-tag"></i> Nueva Categoría
                 </a>
                 <a href="index.php?controller=report&action=form" class="btn btn-warning">
@@ -278,63 +374,19 @@ header("X-XSS-Protection: 1; mode=block");
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Función para confirmaciones (si la necesitas globalmente)
         function confirmAction(message) {
             return confirm(message || '¿Está seguro de realizar esta acción?');
         }
-        
+
         document.addEventListener('DOMContentLoaded', function() {
-            // Cerrar alertas globales automáticamente después de 5 segundos
             const globalAlert = document.getElementById('globalMessage');
             if (globalAlert) {
+                const bsAlert = new bootstrap.Alert(globalAlert);
                 setTimeout(() => {
-                    const bsAlert = new bootstrap.Alert(globalAlert);
-                    bsAlert.close();
+                     if (globalAlert.parentNode) {
+                         globalAlert.parentNode.removeChild(globalAlert);
+                     }
                 }, 5000);
-            }
-            
-            
-            document.querySelectorAll('form:not(#incomeForm)').forEach(form => { // Exclude incomeForm if it's fully handled by AJAX
-                form.addEventListener('submit', function(e) {
-                    let formIsValid = true;
-                    const numberInputs = form.querySelectorAll('input[type="number"]');
-                    numberInputs.forEach(input => {
-                        if (input.value && parseFloat(input.value) <= 0) {
-                            // This basic alert is fine for non-AJAX forms
-                            alert('El valor debe ser un número mayor a cero.');
-                            input.focus();
-                            formIsValid = false;
-                        }
-                    });
-                    if (!formIsValid) {
-                         e.preventDefault();
-                    }
-                    return formIsValid;
-                });
-            });
-
-            const incomeForm = document.getElementById('incomeForm');
-            if (incomeForm) {
-                const isEditForm = incomeForm.action.includes('action=update'); // A way to check if it's an edit form
-                
-                if (!isEditForm) {
-                   
-                } else {
-                    incomeForm.addEventListener('submit', function(e) {
-                        let formIsValid = true;
-                        const valueInput = incomeForm.querySelector('#value'); // Assuming ID 'value'
-                        if (valueInput && (isNaN(parseFloat(valueInput.value)) || parseFloat(valueInput.value) <= 0)) {
-                            alert('El valor del ingreso debe ser un número mayor a cero.');
-                            valueInput.focus();
-                            formIsValid = false;
-                        }
-                        // Add other non-AJAX validations for edit form if needed
-                        if (!formIsValid) {
-                            e.preventDefault();
-                        }
-                        return formIsValid;
-                    });
-                }
             }
         });
     </script>

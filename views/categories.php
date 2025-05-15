@@ -1,5 +1,4 @@
 <?php
-// Verificación segura del controlador
 if (!isset($categoryController)) {
     die('Error: Controlador de categorías no disponible');
 }
@@ -8,14 +7,23 @@ if (!isset($categoryController)) {
 <div class="container">
     <h1 class="mb-4">Gestión de Categorías</h1>
 
-    <!-- Mensajes -->
-    <?php if (isset($_GET['message'])): ?>
-        <div class="alert alert-<?= strpos($_GET['message'], 'Error') === false ? 'success' : 'danger' ?>">
-            <?= htmlspecialchars($_GET['message'], ENT_QUOTES, 'UTF-8') ?>
-        </div>
-    <?php endif; ?>
+    <?php
+    $message_text = isset($_GET['message']) ? htmlspecialchars($_GET['message'], ENT_QUOTES, 'UTF-8') : null;
+    $message_type = 'info';
 
-    <!-- Panel Principal -->
+    if ($message_text) {
+        if (stripos($message_text, 'Error') !== false || stripos($message_text, 'no encontrado') !== false || stripos($message_text, 'inválido') !== false || stripos( $message_text, 'permitidos') !== false) {
+            $message_type = 'danger';
+        } elseif (stripos($message_text, 'correctamente') !== false) {
+            $message_type = 'success';
+        }
+        echo "<div class='alert alert-$message_type alert-dismissible fade show' role='alert'>";
+        echo $message_text;
+        echo '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+        echo '</div>';
+    }
+    ?>
+
     <div class="card shadow">
         <div class="card-header py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold text-primary">Listado de Categorías</h6>
@@ -23,10 +31,11 @@ if (!isset($categoryController)) {
                 <i class="fas fa-plus"></i> Nueva
             </a>
         </div>
-        
+
         <div class="card-body">
-            <!-- Formularios -->
-            <?php if (isset($action) && ($action == 'register' || ($action == 'edit' && isset($category)))): ?>
+            <?php
+            if (isset($action) && ($action == 'register' || ($action == 'edit' && isset($category)))):
+            ?>
                 <div class="row mb-4">
                     <div class="col-md-6 mx-auto">
                         <div class="card">
@@ -34,30 +43,37 @@ if (!isset($categoryController)) {
                                 <?= $action == 'register' ? 'Nueva Categoría' : 'Editar Categoría' ?>
                             </div>
                             <div class="card-body">
-                                <form method="POST" action="index.php?controller=category&action=<?= $action ?>">
-                                    <?php if ($action == 'edit'): ?>
-                                        <input type="hidden" name="id" value="<?= $category['id'] ?>">
+                                <form id="categoryForm" method="POST" action="index.php?controller=category&action=<?= $action ?>">
+                                    <?php if ($action == 'edit' && isset($category)): ?>
+                                        <input type="hidden" name="id" value="<?= htmlspecialchars($category['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                                     <?php endif; ?>
-                                    
+
                                     <div class="mb-3">
-                                        <label class="form-label">Nombre</label>
-                                        <input type="text" name="name" class="form-control" 
-                                               value="<?= htmlspecialchars($action == 'edit' ? $category['name'] : ($_POST['name'] ?? '')) ?>" 
-                                               required>
+                                        <label for="categoryName" class="form-label">Nombre</label>
+                                        <input type="text" name="name" id="categoryName" class="form-control"
+                                               value="<?= htmlspecialchars($action == 'edit' ? ($category['name'] ?? '') : ($_POST['name'] ?? '') , ENT_QUOTES, 'UTF-8') ?>"
+                                               required
+                                               maxlength="<?= CategoryController::MAX_NAME_LENGTH ?? 50 ?>"
+                                               placeholder="Ej: Alimentación, Transporte">
+                                        <span class="text-danger" id="categoryNameError"></span>
                                     </div>
-                                    
+
                                     <div class="mb-3">
-                                        <label class="form-label">Porcentaje</label>
-                                        <input type="number" name="percentage" class="form-control" 
-                                               value="<?= htmlspecialchars($action == 'edit' ? $category['percentage'] : ($_POST['percentage'] ?? '')) ?>" 
-                                               min="0.01" max="100" step="0.01" required>
+                                        <label for="categoryPercentage" class="form-label">Porcentaje (%)</label>
+                                        <input type="number" name="percentage" id="categoryPercentage" class="form-control"
+                                               value="<?= htmlspecialchars($action == 'edit' ? ($category['percentage'] ?? '') : ($_POST['percentage'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                               min="0.01" max="100" step="0.01" required
+                                               placeholder="Ej: 10.50">
+                                        <span class="text-danger" id="categoryPercentageError"></span>
                                     </div>
-                                    
+
                                     <div class="d-flex justify-content-end gap-2">
                                         <button type="submit" class="btn btn-<?= $action == 'register' ? 'primary' : 'warning' ?> btn-sm">
-                                            <?= $action == 'register' ? 'Guardar' : 'Actualizar' ?>
+                                            <i class="fas fa-save"></i> <?= $action == 'register' ? 'Guardar' : 'Actualizar' ?>
                                         </button>
-                                        <a href="index.php?controller=category" class="btn btn-secondary btn-sm">Cancelar</a>
+                                        <a href="index.php?controller=category" class="btn btn-secondary btn-sm">
+                                            <i class="fas fa-times-circle"></i> Cancelar
+                                        </a>
                                     </div>
                                 </form>
                             </div>
@@ -66,7 +82,6 @@ if (!isset($categoryController)) {
                 </div>
             <?php endif; ?>
 
-            <!-- Tabla de Categorías -->
             <div class="table-responsive">
                 <table class="table table-bordered table-hover">
                     <thead class="table-dark">
@@ -86,13 +101,12 @@ if (!isset($categoryController)) {
                         <?php else: ?>
                             <?php foreach ($categories as $cat): ?>
                                 <?php
-                                // Verificación segura de categorías en uso
                                 $enUso = $categoryController->isCategoryInUse($cat['id']);
                                 ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($cat['id']) ?></td>
-                                    <td><?= htmlspecialchars($cat['name']) ?></td>
-                                    <td><?= number_format($cat['percentage'], 2) ?>%</td>
+                                    <td><?= htmlspecialchars($cat['id'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars($cat['name'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= number_format($cat['percentage'] ?? 0, 2) ?>%</td>
                                     <td>
                                         <span class="badge bg-<?= $enUso ? 'warning' : 'success' ?>">
                                             <?= $enUso ? 'En uso' : 'Disponible' ?>
@@ -100,21 +114,21 @@ if (!isset($categoryController)) {
                                     </td>
                                     <td>
                                         <div class="d-flex gap-2">
-                                            <!-- Botón Editar -->
-                                            <a href="index.php?controller=category&action=edit&id=<?= $cat['id'] ?>" 
-                                               class="btn btn-primary btn-sm">
+                                            <a href="index.php?controller=category&action=edit&id=<?= htmlspecialchars($cat['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                               class="btn btn-primary btn-sm"
+                                               title="Editar categoría">
                                                <i class="fas fa-edit"></i> Editar
                                             </a>
-                                            
-                                            <!-- Botón Eliminar (condicional) -->
+
                                             <?php if (!$enUso): ?>
-                                                <a href="index.php?controller=category&action=delete&id=<?= $cat['id'] ?>" 
+                                                <a href="index.php?controller=category&action=delete&id=<?= htmlspecialchars($cat['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                                    class="btn btn-danger btn-sm"
-                                                   onclick="return confirm('¿Eliminar categoría \'<?= htmlspecialchars(addslashes($cat['name'])) ?>\'?')">
+                                                   title="Eliminar categoría"
+                                                   onclick="return confirm('¿Está seguro de eliminar la categoría \'<?= htmlspecialchars(addslashes($cat['name'] ?? '')) ?>\'? Esta acción es irreversible.')">
                                                    <i class="fas fa-trash-alt"></i> Eliminar
                                                 </a>
                                             <?php else: ?>
-                                                <button class="btn btn-danger btn-sm disabled" title="Con gastos asociados">
+                                                <button class="btn btn-danger btn-sm disabled" title="No se puede eliminar: tiene gastos asociados">
                                                     <i class="fas fa-trash-alt"></i> Eliminar
                                                 </button>
                                             <?php endif; ?>

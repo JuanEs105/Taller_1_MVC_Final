@@ -34,4 +34,3 @@ class Income {
         $this->idReport = $idReport;
     }
 }
-?>
