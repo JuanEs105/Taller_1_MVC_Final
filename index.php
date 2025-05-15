@@ -83,20 +83,19 @@ header("X-XSS-Protection: 1; mode=block");
             <?php
             switch ($controller) {
                 case 'income':
-                    $incomes = $incomeController->getAllIncomes(); // Get all incomes for display
-                    $isEditForm = false; // Initialize $isEditForm
-                    $income = null; // Initialize $income for the form
+                    $incomes = $incomeController->getAllIncomes(); 
+                    $isEditForm = false; 
+                    $income = null; 
 
                     if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         if ($action == 'register') {
-                            // The IncomeController->registerIncome will handle AJAX responses and exit.
-                            // If it doesn't exit, it means it's a non-AJAX request or an error before AJAX handling.
+                            
                             $result = $incomeController->registerIncome(
                                 htmlspecialchars($_POST['month']),
                                 (int)$_POST['year'],
                                 (float)$_POST['value']
                             );
-                            // This redirection is for non-AJAX fallback
+                            
                             if (isset($result) && !$result['success']) { // Redirect only if there's an error for non-ajax
                                 header('Location: index.php?controller=income&message='.urlencode($result['message']));
                                 exit;
@@ -104,7 +103,7 @@ header("X-XSS-Protection: 1; mode=block");
                                  header('Location: index.php?controller=income&message='.urlencode($result['message']));
                                 exit;
                             }
-                            // If $result is not set, it means AJAX handled it and exited in the controller.
+                            
                         }
                         elseif ($action == 'update') {
                             // AJAX is not implemented for update in this example, so it works as before.
@@ -132,8 +131,7 @@ header("X-XSS-Protection: 1; mode=block");
                             exit;
                         }
                     }
-                    // Pass $incomes, $isEditForm, and $income to the view
-                    // views/incomes.php will include views/forms/income_form.php
+                    
                     include 'views/incomes.php';
                     break;
                     
@@ -178,7 +176,7 @@ header("X-XSS-Protection: 1; mode=block");
                         }
                     }
                     
-                    include 'views/expense.php'; // Pass $categories, $expenses, $expenseToEdit
+                    include 'views/expense.php'; 
                     break;
                     
                 case 'category':
@@ -218,7 +216,7 @@ header("X-XSS-Protection: 1; mode=block");
                     }
                     
                     $categories = $categoryController->getAllCategories();
-                    include 'views/categories.php'; // Pass $categories, $category (for editing)
+                    include 'views/categories.php'; 
                     break;
                     
                 case 'report':
@@ -242,7 +240,6 @@ header("X-XSS-Protection: 1; mode=block");
                                     include 'views/report.php'; // Pass $error
                                 }
                             } else {
-                                // If parameters are missing, redirect to form with a message
                                 header('Location: index.php?controller=report&action=form&message='.urlencode('Error: Mes y año son requeridos para generar el reporte.'));
                                 exit;
                             }
@@ -255,7 +252,6 @@ header("X-XSS-Protection: 1; mode=block");
                     break;
                     
                 default:
-                    // Fallback to income controller if no valid controller is specified
                     header('Location: index.php?controller=income');
                     exit;
             }
@@ -297,8 +293,7 @@ header("X-XSS-Protection: 1; mode=block");
                 }, 5000);
             }
             
-            // Validación general de formularios (para formularios que NO usan AJAX)
-            // The AJAX income form has its own more specific validation + AJAX handling.
+            
             document.querySelectorAll('form:not(#incomeForm)').forEach(form => { // Exclude incomeForm if it's fully handled by AJAX
                 form.addEventListener('submit', function(e) {
                     let formIsValid = true;
@@ -318,17 +313,13 @@ header("X-XSS-Protection: 1; mode=block");
                 });
             });
 
-             // Specific handling for incomeForm if it exists and is NOT an edit form
             const incomeForm = document.getElementById('incomeForm');
             if (incomeForm) {
                 const isEditForm = incomeForm.action.includes('action=update'); // A way to check if it's an edit form
                 
                 if (!isEditForm) {
-                    // The AJAX submission logic for incomeForm is now expected to be in income_form.php
-                    // This general validation can be a fallback or complement.
-                    // If income_form.php handles its own validation entirely before fetch, this might be redundant for that specific form.
+                   
                 } else {
-                     // For edit form (non-AJAX), ensure basic validation
                     incomeForm.addEventListener('submit', function(e) {
                         let formIsValid = true;
                         const valueInput = incomeForm.querySelector('#value'); // Assuming ID 'value'
