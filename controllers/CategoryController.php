@@ -10,13 +10,15 @@ class CategoryController {
         $this->db = $database->getConnection();
     }
     
-     // Método para registrar nueva categoría 
     public function registerCategory($name, $percentage) {
         try {
             // Validaciones básicas
-            if (empty(trim($name))) {
+            $name = trim($name);
+            if (empty($name)) {
                 throw new Exception("El nombre de la categoría es requerido");
             }
+            
+            $percentage = floatval(str_replace(',', '.', $percentage));
             
             if (!is_numeric($percentage) || $percentage <= 0 || $percentage > 100) {
                 throw new Exception("El porcentaje debe ser un número entre 0.01 y 100");
@@ -53,22 +55,43 @@ class CategoryController {
             ];
         }
     }
-     public function updateCategory($id, $name, $percentage) {
+    
+    public function updateCategory($id, $name, $percentage) {
         try {
-            // Primero verificar si la categoría está en uso
-            if ($this->isCategoryInUse($id)) {
-                throw new Exception("No se puede modificar una categoría que tiene gastos asociados");
-            }
-            
-            // Resto de validaciones y lógica de actualización
+            // Validaciones
+            $name = trim($name);
             if (empty($name)) {
                 throw new Exception("El nombre de la categoría es requerido");
             }
+            
+            $percentage = floatval(str_replace(',', '.', $percentage));
             
             if (!is_numeric($percentage) || $percentage <= 0 || $percentage > 100) {
                 throw new Exception("El porcentaje debe ser un número entre 0.01 y 100");
             }
             
+            // Verificar si la categoría existe
+            $query = "SELECT id FROM categories WHERE id = :id";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            if (!$stmt->fetch()) {
+                throw new Exception("La categoría no existe");
+            }
+            
+            // Verificar si el nombre ya está en uso por otra categoría
+            $query = "SELECT id FROM categories WHERE name = :name AND id != :id";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':name', $name);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            if ($stmt->fetch()) {
+                throw new Exception("Ya existe otra categoría con ese nombre");
+            }
+            
+            // Actualizar la categoría
             $query = "UPDATE categories SET name = :name, percentage = :percentage WHERE id = :id";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':name', $name);
@@ -79,20 +102,36 @@ class CategoryController {
                 throw new Exception("Error al actualizar la categoría");
             }
             
-            return ['success' => true, 'message' => 'Categoría actualizada correctamente'];
+            return [
+                'success' => true, 
+                'message' => 'Categoría actualizada correctamente'
+            ];
         } catch (Exception $e) {
-            return ['success' => false, 'message' => $e->getMessage()];
+            return [
+                'success' => false, 
+                'message' => $e->getMessage()
+            ];
         }
     }
     
-    // Método para eliminar categoría
     public function deleteCategory($id) {
         try {
-            // Primero verificar si la categoría está en uso
-            if ($this->isCategoryInUse($id)) {
-                throw new Exception("No se puede eliminar una categoría que tiene gastos asociados");
+            // Primero verificar si la categoría existe
+            $query = "SELECT id FROM categories WHERE id = :id";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            if (!$stmt->fetch()) {
+                throw new Exception("La categoría no existe");
             }
             
+            // Verificar si la categoría está en uso (versión optimizada)
+            if ($this->isCategoryInUse($id)) {
+                throw new Exception("No se puede eliminar: categoría tiene gastos asociados");
+            }
+            
+            // Eliminar la categoría
             $query = "DELETE FROM categories WHERE id = :id";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
@@ -101,12 +140,17 @@ class CategoryController {
                 throw new Exception("Error al eliminar la categoría");
             }
             
-            return ['success' => true, 'message' => 'Categoría eliminada correctamente'];
+            return [
+                'success' => true, 
+                'message' => 'Categoría eliminada correctamente'
+            ];
         } catch (Exception $e) {
-            return ['success' => false, 'message' => $e->getMessage()];
+            return [
+                'success' => false, 
+                'message' => $e->getMessage()
+            ];
         }
     }
-    
     
     public function getAllCategories() {
         try {
@@ -130,20 +174,19 @@ class CategoryController {
         }
     }
     
-   public function isCategoryInUse($categoryId) {
+    public function isCategoryInUse($categoryId) {
         try {
-            $query = "SELECT COUNT(*) as count FROM expenses WHERE category_id = :categoryId";
+            // Consulta optimizada con LIMIT 1 para mejor rendimiento
+            $query = "SELECT 1 FROM bills WHERE idCategory = :categoryId LIMIT 1";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':categoryId', $categoryId, PDO::PARAM_INT);
             $stmt->execute();
             
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return ($result['count'] > 0);
+            // Retorna true si encuentra al menos un gasto asociado
+            return (bool)$stmt->fetch();
         } catch (Exception $e) {
             error_log("Error al verificar categoría en uso: " . $e->getMessage());
             return true; // Por seguridad, asumir que está en uso si hay error
         }
     }
-
 }
-?>

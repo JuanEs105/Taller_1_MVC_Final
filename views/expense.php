@@ -1,13 +1,13 @@
 <div class="container">
     <h1>Control de Gastos</h1>
     
-    <?php if ($message): ?>
-        <div class="alert alert-<?= $message['success'] ? 'success' : 'danger' ?>">
-            <?= $message['message'] ?>
+    <?php if (isset($message)): ?>
+        <div class="alert alert-<?= strpos($message, 'Error') === false ? 'success' : 'danger' ?>">
+            <?= htmlspecialchars($message) ?>
         </div>
     <?php endif; ?>
     
-    <!-- Formulario de Edición (se muestra solo cuando está en modo edición) -->
+    <!-- Formulario de Edición -->
     <?php if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($expenseToEdit)): ?>
     <div class="card mb-4">
         <div class="card-header">
@@ -24,9 +24,9 @@
                             <select name="category" class="form-control" required>
                                 <option value="">Seleccione...</option>
                                 <?php foreach ($categories as $category): ?>
-                                    <option value="<?= $category['id'] ?>" 
-                                        <?= $category['id'] == $expenseToEdit['category_id'] ? 'selected' : '' ?>>
-                                        <?= $category['name'] ?>
+                                    <option value="<?= $category['id'] ?>"
+                                        <?= $category['id'] == $expenseToEdit['idCategory'] ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($category['name']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -36,7 +36,8 @@
                     <div class="col-md-4">
                         <div class="form-group">
                             <label>Valor</label>
-                            <input type="number" name="value" class="form-control" step="0.01" min="0.01" 
+                            <input type="number" name="value" class="form-control" 
+                                   step="0.01" min="0.01" 
                                    value="<?= number_format($expenseToEdit['value'], 2, '.', '') ?>" required>
                         </div>
                     </div>
@@ -53,7 +54,7 @@
     </div>
     <?php endif; ?>
     
-    <!-- Formulario de Registro (se oculta cuando está en modo edición) -->
+    <!-- Formulario de Registro -->
     <?php if (!isset($_GET['action']) || $_GET['action'] != 'edit' || !isset($expenseToEdit)): ?>
     <div class="card mb-4">
         <div class="card-header">
@@ -67,8 +68,12 @@
                             <label>Mes</label>
                             <select name="month" class="form-control" required>
                                 <option value="">Seleccione...</option>
-                                <?php foreach (['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'] as $mes): ?>
-                                    <option value="<?= $mes ?>" <?= isset($_POST['month']) && $_POST['month'] === $mes ? 'selected' : '' ?>>
+                                <?php 
+                                $months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                                          'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                                foreach ($months as $mes): ?>
+                                    <option value="<?= $mes ?>" 
+                                        <?= isset($_POST['month']) && $_POST['month'] === $mes ? 'selected' : '' ?>>
                                         <?= $mes ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -79,7 +84,8 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Año</label>
-                            <input type="number" name="year" class="form-control" min="2000" max="2100" 
+                            <input type="number" name="year" class="form-control" 
+                                   min="2000" max="2100" 
                                    value="<?= $_POST['year'] ?? date('Y') ?>" required>
                         </div>
                     </div>
@@ -90,8 +96,10 @@
                             <select name="category" class="form-control" required>
                                 <option value="">Seleccione...</option>
                                 <?php foreach ($categories as $category): ?>
-                                    <option value="<?= $category['id'] ?>" <?= isset($_POST['category']) && $_POST['category'] == $category['id'] ? 'selected' : '' ?>>
-                                        <?= $category['name'] ?>
+                                    <option value="<?= $category['id'] ?>"
+                                        <?= isset($_POST['category']) && $_POST['category'] == $category['id'] ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($category['name']) ?>
+                                        (<?= $category['percentage'] ?>%)
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -101,7 +109,8 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Valor</label>
-                            <input type="number" name="value" class="form-control" step="0.01" min="0.01" 
+                            <input type="number" name="value" class="form-control" 
+                                   step="0.01" min="0.01" 
                                    value="<?= $_POST['value'] ?? '' ?>" required>
                         </div>
                     </div>
@@ -138,7 +147,7 @@
                             <?php foreach ($expenses as $expense): ?>
                                 <tr>
                                     <td><?= $expense['id'] ?></td>
-                                    <td><?= $expense['category_name'] ?></td>
+                                    <td><?= htmlspecialchars($expense['category_name']) ?></td>
                                     <td><?= $expense['month'] ?></td>
                                     <td><?= $expense['year'] ?></td>
                                     <td>$<?= number_format($expense['value'], 2, ',', '.') ?></td>

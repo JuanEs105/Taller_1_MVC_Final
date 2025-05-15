@@ -1,50 +1,113 @@
-<div class="form-container">
-    <h2><?php echo isset($_GET['action']) && $_GET['action'] == 'edit' ? 'Modificar Ingreso' : 'Registrar Ingreso'; ?></h2>
-    
-    <?php if (isset($message)): ?>
-        <div class="message <?php echo $message['success'] ? 'success' : 'error'; ?>">
-            <?php echo $message['message']; ?>
+<div class="container">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h2 class="m-0 font-weight-bold text-primary">
+                <?= isset($_GET['action']) && $_GET['action'] == 'edit' ? 'Modificar Ingreso' : 'Registrar Nuevo Ingreso' ?>
+            </h2>
         </div>
-    <?php endif; ?>
-    
-    <form method="POST" action="index.php?controller=income&action=<?php echo isset($_GET['action']) && $_GET['action'] == 'edit' ? 'update' : 'register'; ?>">
-        <div class="form-group">
-            <label for="month">Mes:</label>
-            <select name="month" id="month" class="form-control" <?php echo isset($_GET['action']) && $_GET['action'] == 'edit' ? 'disabled' : ''; ?> required>
-                <option value="">Seleccione un mes</option>
-                <option value="Enero" <?php echo (isset($income) && $income['month'] == 'Enero') ? 'selected' : ''; ?>>Enero</option>
-                <option value="Febrero" <?php echo (isset($income) && $income['month'] == 'Febrero') ? 'selected' : ''; ?>>Febrero</option>
-                <option value="Marzo" <?php echo (isset($income) && $income['month'] == 'Marzo') ? 'selected' : ''; ?>>Marzo</option>
-                <option value="Abril" <?php echo (isset($income) && $income['month'] == 'Abril') ? 'selected' : ''; ?>>Abril</option>
-                <option value="Mayo" <?php echo (isset($income) && $income['month'] == 'Mayo') ? 'selected' : ''; ?>>Mayo</option>
-                <option value="Junio" <?php echo (isset($income) && $income['month'] == 'Junio') ? 'selected' : ''; ?>>Junio</option>
-                <option value="Julio" <?php echo (isset($income) && $income['month'] == 'Julio') ? 'selected' : ''; ?>>Julio</option>
-                <option value="Agosto" <?php echo (isset($income) && $income['month'] == 'Agosto') ? 'selected' : ''; ?>>Agosto</option>
-                <option value="Septiembre" <?php echo (isset($income) && $income['month'] == 'Septiembre') ? 'selected' : ''; ?>>Septiembre</option>
-                <option value="Octubre" <?php echo (isset($income) && $income['month'] == 'Octubre') ? 'selected' : ''; ?>>Octubre</option>
-                <option value="Noviembre" <?php echo (isset($income) && $income['month'] == 'Noviembre') ? 'selected' : ''; ?>>Noviembre</option>
-                <option value="Diciembre" <?php echo (isset($income) && $income['month'] == 'Diciembre') ? 'selected' : ''; ?>>Diciembre</option>
-            </select>
-            <?php if (isset($_GET['action']) && $_GET['action'] == 'edit'): ?>
-                <input type="hidden" name="month" value="<?php echo $income['month']; ?>">
+        <div class="card-body">
+            <?php if (isset($message)): ?>
+                <div class="alert alert-<?= $message['success'] ? 'success' : 'danger' ?>">
+                    <?= htmlspecialchars($message['message'], ENT_QUOTES, 'UTF-8') ?>
+                </div>
             <?php endif; ?>
+
+            <form method="POST" action="index.php?controller=income&action=<?= isset($_GET['action']) && $_GET['action'] == 'edit' ? 'update' : 'register' ?>" id="incomeForm">
+                <?php if (isset($_GET['action']) && $_GET['action'] == 'edit' && isset($income)): ?>
+                    <input type="hidden" name="month" value="<?= htmlspecialchars($income['month']) ?>">
+                    <input type="hidden" name="year" value="<?= htmlspecialchars($income['year']) ?>">
+                <?php endif; ?>
+
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="month">Mes:</label>
+                            <select name="month" id="month" class="form-control" <?= isset($_GET['action']) && $_GET['action'] == 'edit' ? 'disabled' : '' ?> required>
+                                <option value="">Seleccione un mes</option>
+                                <?php
+                                $months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                                          'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                                foreach ($months as $m): ?>
+                                    <option value="<?= $m ?>" <?= (isset($income) && $income['month'] == $m) ? 'selected' : '' ?>>
+                                        <?= $m ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="year">Año:</label>
+                            <input type="number" name="year" id="year" class="form-control"
+                                   min="2000" max="2100"
+                                   value="<?= isset($income) ? htmlspecialchars($income['year']) : date('Y') ?>"
+                                   <?= isset($_GET['action']) && $_GET['action'] == 'edit' ? 'readonly' : '' ?> required>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="value">Valor del Ingreso:</label>
+                            <div class="input-group">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">$</span>
+                                </div>
+                                <input type="number" name="value" id="value" class="form-control"
+                                       min="0.01" step="0.01"
+                                       value="<?= isset($income) ? htmlspecialchars(number_format($income['value'], 2, '.', '')) : '' ?>"
+                                       required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group text-right mt-4">
+                    <button type="submit" class="btn btn-primary mr-2">
+                        <i class="fas fa-save"></i> <?= isset($_GET['action']) && $_GET['action'] == 'edit' ? 'Actualizar' : 'Registrar' ?>
+                    </button>
+                    <a href="index.php?controller=income" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancelar
+                    </a>
+                </div>
+            </form>
         </div>
-        
-        <div class="form-group">
-            <label for="year">Año:</label>
-            <input type="number" name="year" id="year" class="form-control" min="2020" max="2100" value="<?php echo isset($income) ? $income['year'] : date('Y'); ?>" <?php echo isset($_GET['action']) && $_GET['action'] == 'edit' ? 'readonly' : ''; ?> required>
-            <?php if (isset($_GET['action']) && $_GET['action'] == 'edit'): ?>
-                <input type="hidden" name="year" value="<?php echo $income['year']; ?>">
-            <?php endif; ?>
-        </div>
-        
-        <div class="form-group">
-            <label for="value">Valor del Ingreso:</label>
-            <input type="number" name="value" id="value" class="form-control" min="0.01" step="0.01" value="<?php echo isset($income) ? number_format($income['value'], 2, '.', '') : ''; ?>" required>
-        </div>
-        
-        <button type="submit" class="btn btn-primary">
-            <?php echo isset($_GET['action']) && $_GET['action'] == 'edit' ? 'Actualizar' : 'Registrar'; ?>
-        </button>
-    </form>
+    </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('incomeForm');
+    
+    form.addEventListener('submit', function(e) {
+        const valueInput = document.getElementById('value');
+        const value = parseFloat(valueInput.value);
+        
+        if (isNaN(value) || value <= 0) {
+            e.preventDefault();
+            alert('El valor del ingreso debe ser un número mayor a cero');
+            valueInput.focus();
+            return false;
+        }
+
+        const monthSelect = document.getElementById('month');
+        if (monthSelect && monthSelect.value === '') {
+            e.preventDefault();
+            alert('Seleccione un mes válido');
+            monthSelect.focus();
+            return false;
+        }
+
+        const yearInput = document.getElementById('year');
+        const year = parseInt(yearInput.value);
+        if (isNaN(year) || year < 2000 || year > 2100) {
+            e.preventDefault();
+            alert('Ingrese un año válido entre 2000 y 2100');
+            yearInput.focus();
+            return false;
+        }
+
+        return true;
+    });
+});
+</script>

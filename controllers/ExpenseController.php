@@ -14,27 +14,49 @@ class ExpenseController {
         $this->incomeController = new IncomeController();
     }
     
-    // Método para registrar un nuevo gasto
     public function registerExpense($categoryId, $month, $year, $value) {
         try {
-            // Validaciones básicas
-            if ($value <= 0) {
-                throw new Exception('El valor del gasto debe ser mayor a cero');
+            // Validaciones mejoradas
+            if (!is_numeric($value) || $value <= 0) {
+                throw new Exception('El valor del gasto debe ser un número mayor a cero');
+            }
+
+            if (!is_numeric($categoryId) || $categoryId <= 0) {
+                throw new Exception('Seleccione una categoría válida');
+            }
+
+            // Verificar que la categoría existe
+            $category = $this->getCategoryById($categoryId);
+            if (!$category) {
+                throw new Exception('La categoría seleccionada no existe');
+            }
+
+            // Validar mes y año
+            $validMonths = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                           'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            if (!in_array($month, $validMonths)) {
+                throw new Exception('Mes no válido');
+            }
+
+            if ($year < 2000 || $year > 2100) {
+                throw new Exception('Año no válido (debe estar entre 2000 y 2100)');
             }
 
             // Verificar o crear el reporte
             $reportData = $this->incomeController->checkReportExists($month, $year);
             $reportId = $reportData ? $reportData['id'] : $this->incomeController->createReport($month, $year);
 
-            // Registrar el gasto
-            $query = "INSERT INTO bills (value, idCategory, idReport) VALUES (:value, :categoryId, :reportId)";
+            // Registrar el gasto en la tabla bills (sin created_at)
+            $query = "INSERT INTO bills (value, idCategory, idReport) 
+                      VALUES (:value, :categoryId, :reportId)";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':value', $value, PDO::PARAM_STR);
             $stmt->bindParam(':categoryId', $categoryId, PDO::PARAM_INT);
             $stmt->bindParam(':reportId', $reportId, PDO::PARAM_INT);
             
             if (!$stmt->execute()) {
-                throw new Exception('Error al registrar el gasto');
+                $errorInfo = $stmt->errorInfo();
+                throw new Exception('Error al registrar el gasto: ' . $errorInfo[2]);
             }
 
             return [
@@ -43,6 +65,11 @@ class ExpenseController {
                 'id' => $this->db->lastInsertId()
             ];
             
+        } catch (PDOException $e) {
+            return [
+                'success' => false,
+                'message' => 'Error de base de datos: ' . $e->getMessage()
+            ];
         } catch (Exception $e) {
             return [
                 'success' => false,
@@ -51,12 +78,21 @@ class ExpenseController {
         }
     }
 
-    // Método para actualizar un gasto (solo categoría y valor)
     public function updateExpense($id, $categoryId, $value) {
         try {
             // Validaciones
-            if ($value <= 0) {
+            if (!is_numeric($value) || $value <= 0) {
                 throw new Exception('El valor del gasto debe ser mayor a cero');
+            }
+
+            if (!is_numeric($categoryId) || $categoryId <= 0) {
+                throw new Exception('Seleccione una categoría válida');
+            }
+
+            // Verificar que la categoría existe
+            $category = $this->getCategoryById($categoryId);
+            if (!$category) {
+                throw new Exception('La categoría seleccionada no existe');
             }
 
             // Verificar que el gasto existe
@@ -65,15 +101,18 @@ class ExpenseController {
                 throw new Exception('El gasto no existe');
             }
 
-            // Actualizar solo categoría y valor
-            $query = "UPDATE bills SET value = :value, idCategory = :categoryId WHERE id = :id";
+            // Actualizar (sin updated_at)
+            $query = "UPDATE bills 
+                      SET value = :value, idCategory = :categoryId
+                      WHERE id = :id";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':value', $value, PDO::PARAM_STR);
             $stmt->bindParam(':categoryId', $categoryId, PDO::PARAM_INT);
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             
             if (!$stmt->execute()) {
-                throw new Exception('Error al actualizar el gasto');
+                $errorInfo = $stmt->errorInfo();
+                throw new Exception('Error al actualizar: ' . $errorInfo[2]);
             }
 
             return [
@@ -81,6 +120,11 @@ class ExpenseController {
                 'message' => 'Gasto actualizado correctamente'
             ];
             
+        } catch (PDOException $e) {
+            return [
+                'success' => false,
+                'message' => 'Error de base de datos: ' . $e->getMessage()
+            ];
         } catch (Exception $e) {
             return [
                 'success' => false,
@@ -89,7 +133,6 @@ class ExpenseController {
         }
     }
 
-    // Método para eliminar un gasto
     public function deleteExpense($id) {
         try {
             $query = "DELETE FROM bills WHERE id = :id";
@@ -97,7 +140,8 @@ class ExpenseController {
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
             
             if (!$stmt->execute()) {
-                throw new Exception('Error al eliminar el gasto');
+                $errorInfo = $stmt->errorInfo();
+                throw new Exception('Error al eliminar: ' . $errorInfo[2]);
             }
 
             return [
@@ -105,6 +149,11 @@ class ExpenseController {
                 'message' => 'Gasto eliminado correctamente'
             ];
             
+        } catch (PDOException $e) {
+            return [
+                'success' => false,
+                'message' => 'Error de base de datos: ' . $e->getMessage()
+            ];
         } catch (Exception $e) {
             return [
                 'success' => false,
@@ -113,11 +162,10 @@ class ExpenseController {
         }
     }
 
-    // Método para obtener todos los gastos
     public function getAllExpenses() {
         try {
-            $query = "SELECT b.id, b.value, c.name as category_name, r.month, r.year, 
-                             c.id as category_id, b.idCategory
+            $query = "SELECT b.id, b.value, c.name as category_name, 
+                             r.month, r.year, c.id as idCategory, b.idReport
                       FROM bills b
                       JOIN categories c ON b.idCategory = c.id
                       JOIN reports r ON b.idReport = r.id
@@ -130,17 +178,16 @@ class ExpenseController {
             
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
             
-        } catch (Exception $e) {
+        } catch (PDOException $e) {
             error_log("Error al obtener gastos: " . $e->getMessage());
             return [];
         }
     }
 
-    // Método para obtener un gasto específico por ID
     public function getExpenseById($id) {
         try {
-            $query = "SELECT b.id, b.value, c.name as category_name, r.month, r.year, 
-                             c.id as category_id, b.idCategory, b.idReport
+            $query = "SELECT b.id, b.value, c.name as category_name, 
+                             r.month, r.year, c.id as idCategory, b.idReport
                       FROM bills b
                       JOIN categories c ON b.idCategory = c.id
                       JOIN reports r ON b.idReport = r.id
@@ -152,31 +199,44 @@ class ExpenseController {
             
             return $stmt->fetch(PDO::FETCH_ASSOC);
             
-        } catch (Exception $e) {
+        } catch (PDOException $e) {
             error_log("Error al obtener gasto: " . $e->getMessage());
             return false;
         }
     }
 
-    // Método para obtener todas las categorías
     public function getAllCategories() {
         try {
-            $query = "SELECT id, name FROM categories ORDER BY name";
+            $query = "SELECT id, name, percentage FROM categories ORDER BY name";
             $stmt = $this->db->prepare($query);
             $stmt->execute();
             
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
             
-        } catch (Exception $e) {
+        } catch (PDOException $e) {
             error_log("Error al obtener categorías: " . $e->getMessage());
             return [];
         }
     }
 
-    // Método para obtener gastos por mes y año
+    public function getCategoryById($id) {
+        try {
+            $query = "SELECT id, name, percentage FROM categories WHERE id = :id";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+            
+        } catch (PDOException $e) {
+            error_log("Error al obtener categoría: " . $e->getMessage());
+            return false;
+        }
+    }
+
     public function getExpensesByMonthYear($month, $year) {
         try {
-            $query = "SELECT b.id, b.value, c.name as category_name, c.id as category_id
+            $query = "SELECT b.id, b.value, c.name as category_name, c.id as idCategory
                       FROM bills b
                       JOIN categories c ON b.idCategory = c.id
                       JOIN reports r ON b.idReport = r.id
@@ -190,7 +250,7 @@ class ExpenseController {
             
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
             
-        } catch (Exception $e) {
+        } catch (PDOException $e) {
             error_log("Error al obtener gastos por mes/año: " . $e->getMessage());
             return [];
         }
