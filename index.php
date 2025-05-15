@@ -123,6 +123,13 @@ header("X-XSS-Protection: 1; mode=block");
                         }
                     }
                     
+                    // MODIFICACIÓN AQUÍ: Manejar la acción de eliminar
+                    if ($action == 'delete' && isset($_GET['id'])) { //
+                        $result = $expenseController->deleteExpense((int)$_GET['id']); //
+                        header('Location: index.php?controller=expense&message='.urlencode($result['message'])); //
+                        exit; //
+                    }
+                    
                     if ($action == 'edit' && isset($_GET['id'])) {
                         $expenseToEdit = $expenseController->getExpenseById((int)$_GET['id']);
                         if (!$expenseToEdit) {
@@ -131,7 +138,7 @@ header("X-XSS-Protection: 1; mode=block");
                         }
                     }
                     
-                    include 'views/expense.php';
+                    include 'views/expense.php'; //
                     break;
                     
                 case 'category':
