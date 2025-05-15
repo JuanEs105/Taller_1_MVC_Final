@@ -11,7 +11,7 @@ $action = isset($_GET['action']) ? strtolower($_GET['action']) : 'index';
 // Validar controladores permitidos
 $allowedControllers = ['income', 'expense', 'category', 'report'];
 if (!in_array($controller, $allowedControllers)) {
-    $controller = 'income';
+    $controller = 'income'; // Default controller
 }
 
 // Inicializar controladores
@@ -20,13 +20,25 @@ $expenseController = new ExpenseController();
 $categoryController = new CategoryController();
 $reportController = new ReportController();
 
-// Procesar mensajes de forma segura
-$message = isset($_GET['message']) ? htmlspecialchars($_GET['message'], ENT_QUOTES, 'UTF-8') : null;
+// Procesar mensajes de forma segura (para non-AJAX redirects)
+$message_text = isset($_GET['message']) ? htmlspecialchars($_GET['message'], ENT_QUOTES, 'UTF-8') : null;
+$message_type = 'info'; // Default type, can be overridden based on context if needed
+
+if ($message_text) {
+    // Basic check for error messages to style them differently
+    if (stripos($message_text, 'error') !== false || stripos($message_text, 'no encontrado') !== false) {
+        $message_type = 'danger';
+    } elseif (stripos($message_text, 'correctamente') !== false) {
+        $message_type = 'success';
+    }
+}
+
 
 // Configuración de seguridad
 header("X-Frame-Options: DENY");
 header("X-Content-Type-Options: nosniff");
 header("X-XSS-Protection: 1; mode=block");
+// Nota: La directiva CSP se establece en la sección <head> del HTML para mayor flexibilidad.
 ?>
 
 <!DOCTYPE html>
@@ -34,7 +46,7 @@ header("X-XSS-Protection: 1; mode=block");
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; img-src 'self' data:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; img-src 'self' data:;">
     <title>Sistema de Gestión Financiera</title>
     <link rel="stylesheet" href="views/css/styles.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -60,9 +72,9 @@ header("X-XSS-Protection: 1; mode=block");
             </nav>
         </header>
 
-        <?php if ($message): ?>
-            <div class="alert alert-dismissible <?= strpos($message, 'Error') === false ? 'alert-success' : 'alert-danger' ?>">
-                <?= $message ?>
+        <?php if ($message_text): ?>
+            <div id="globalMessage" class="alert alert-dismissible alert-<?= $message_type ?>">
+                <?= $message_text ?>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         <?php endif; ?>
@@ -71,35 +83,64 @@ header("X-XSS-Protection: 1; mode=block");
             <?php
             switch ($controller) {
                 case 'income':
-                    $incomes = $incomeController->getAllIncomes();
-                    
+                    $incomes = $incomeController->getAllIncomes(); // Get all incomes for display
+                    $isEditForm = false; // Initialize $isEditForm
+                    $income = null; // Initialize $income for the form
+
                     if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         if ($action == 'register') {
+                            // The IncomeController->registerIncome will handle AJAX responses and exit.
+                            // If it doesn't exit, it means it's a non-AJAX request or an error before AJAX handling.
                             $result = $incomeController->registerIncome(
                                 htmlspecialchars($_POST['month']),
                                 (int)$_POST['year'],
                                 (float)$_POST['value']
                             );
-                            header('Location: index.php?controller=income&message='.urlencode($result['message']));
-                            exit;
-                        } 
+                            // This redirection is for non-AJAX fallback
+                            if (isset($result) && !$result['success']) { // Redirect only if there's an error for non-ajax
+                                header('Location: index.php?controller=income&message='.urlencode($result['message']));
+                                exit;
+                            } elseif (isset($result) && $result['success']) { // Non-ajax success
+                                 header('Location: index.php?controller=income&message='.urlencode($result['message']));
+                                exit;
+                            }
+                            // If $result is not set, it means AJAX handled it and exited in the controller.
+                        }
                         elseif ($action == 'update') {
+                            // AJAX is not implemented for update in this example, so it works as before.
                             $result = $incomeController->updateIncome(
-                                htmlspecialchars($_POST['month']),
+                                htmlspecialchars($_POST['month']), // Assuming month/year are PKs and POSTed
                                 (int)$_POST['year'],
                                 (float)$_POST['value']
                             );
                             header('Location: index.php?controller=income&message='.urlencode($result['message']));
                             exit;
                         }
+                    } elseif ($_SERVER['REQUEST_METHOD'] == 'GET' && $action == 'edit') {
+                        if (isset($_GET['month']) && isset($_GET['year'])) {
+                            $isEditForm = true;
+                            $income = $incomeController->getIncomeByMonthYear(
+                                htmlspecialchars($_GET['month']),
+                                (int)$_GET['year']
+                            );
+                            if (!$income) {
+                                header('Location: index.php?controller=income&message='.urlencode('Error: Ingreso a modificar no encontrado.'));
+                                exit;
+                            }
+                        } else {
+                             header('Location: index.php?controller=income&message='.urlencode('Error: Faltan parámetros para modificar el ingreso.'));
+                            exit;
+                        }
                     }
-                    
+                    // Pass $incomes, $isEditForm, and $income to the view
+                    // views/incomes.php will include views/forms/income_form.php
                     include 'views/incomes.php';
                     break;
                     
                 case 'expense':
                     $categories = $expenseController->getAllCategories();
                     $expenses = $expenseController->getAllExpenses();
+                    $expenseToEdit = null; // Initialize
                     
                     if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         if ($action == 'register') {
@@ -123,11 +164,10 @@ header("X-XSS-Protection: 1; mode=block");
                         }
                     }
                     
-                    // MODIFICACIÓN AQUÍ: Manejar la acción de eliminar
-                    if ($action == 'delete' && isset($_GET['id'])) { //
-                        $result = $expenseController->deleteExpense((int)$_GET['id']); //
-                        header('Location: index.php?controller=expense&message='.urlencode($result['message'])); //
-                        exit; //
+                    if ($action == 'delete' && isset($_GET['id'])) {
+                        $result = $expenseController->deleteExpense((int)$_GET['id']);
+                        header('Location: index.php?controller=expense&message='.urlencode($result['message']));
+                        exit;
                     }
                     
                     if ($action == 'edit' && isset($_GET['id'])) {
@@ -138,10 +178,11 @@ header("X-XSS-Protection: 1; mode=block");
                         }
                     }
                     
-                    include 'views/expense.php'; //
+                    include 'views/expense.php'; // Pass $categories, $expenses, $expenseToEdit
                     break;
                     
                 case 'category':
+                    $category = null; // Initialize
                     if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         if ($action == 'register') {
                             $result = $categoryController->registerCategory(
@@ -177,7 +218,7 @@ header("X-XSS-Protection: 1; mode=block");
                     }
                     
                     $categories = $categoryController->getAllCategories();
-                    include 'views/categories.php';
+                    include 'views/categories.php'; // Pass $categories, $category (for editing)
                     break;
                     
                 case 'report':
@@ -195,11 +236,15 @@ header("X-XSS-Protection: 1; mode=block");
                                 
                                 if ($result['success']) {
                                     $reportData = $result['data'];
-                                    include 'views/report.php';
+                                    include 'views/report.php'; // Pass $reportData
                                 } else {
                                     $error = $result['message'];
-                                    include 'views/report.php';
+                                    include 'views/report.php'; // Pass $error
                                 }
+                            } else {
+                                // If parameters are missing, redirect to form with a message
+                                header('Location: index.php?controller=report&action=form&message='.urlencode('Error: Mes y año son requeridos para generar el reporte.'));
+                                exit;
                             }
                             break;
                             
@@ -210,6 +255,7 @@ header("X-XSS-Protection: 1; mode=block");
                     break;
                     
                 default:
+                    // Fallback to income controller if no valid controller is specified
                     header('Location: index.php?controller=income');
                     exit;
             }
@@ -218,13 +264,13 @@ header("X-XSS-Protection: 1; mode=block");
 
         <div class="quick-actions fixed-bottom mb-4 text-center">
             <div class="btn-group" role="group">
-                <a href="index.php?controller=income&action=register" class="btn btn-primary">
+                <a href="index.php?controller=income" class="btn btn-primary">
                     <i class="fas fa-plus-circle"></i> Nuevo Ingreso
                 </a>
-                <a href="index.php?controller=expense&action=register" class="btn btn-secondary">
+                 <a href="index.php?controller=expense" class="btn btn-secondary">
                     <i class="fas fa-minus-circle"></i> Nuevo Gasto
                 </a>
-                <a href="index.php?controller=category&action=register" class="btn btn-info">
+                <a href="index.php?controller=category" class="btn btn-info">
                     <i class="fas fa-tag"></i> Nueva Categoría
                 </a>
                 <a href="index.php?controller=report&action=form" class="btn btn-warning">
@@ -236,37 +282,69 @@ header("X-XSS-Protection: 1; mode=block");
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Función para confirmaciones
+        // Función para confirmaciones (si la necesitas globalmente)
         function confirmAction(message) {
             return confirm(message || '¿Está seguro de realizar esta acción?');
         }
         
-        // Mostrar mensajes temporales
         document.addEventListener('DOMContentLoaded', function() {
-            // Cerrar alertas automáticamente después de 5 segundos
-            setTimeout(() => {
-                const alerts = document.querySelectorAll('.alert');
-                alerts.forEach(alert => {
-                    const bsAlert = new bootstrap.Alert(alert);
+            // Cerrar alertas globales automáticamente después de 5 segundos
+            const globalAlert = document.getElementById('globalMessage');
+            if (globalAlert) {
+                setTimeout(() => {
+                    const bsAlert = new bootstrap.Alert(globalAlert);
                     bsAlert.close();
-                });
-            }, 5000);
+                }, 5000);
+            }
             
-            // Validación general de formularios
-            document.querySelectorAll('form').forEach(form => {
+            // Validación general de formularios (para formularios que NO usan AJAX)
+            // The AJAX income form has its own more specific validation + AJAX handling.
+            document.querySelectorAll('form:not(#incomeForm)').forEach(form => { // Exclude incomeForm if it's fully handled by AJAX
                 form.addEventListener('submit', function(e) {
+                    let formIsValid = true;
                     const numberInputs = form.querySelectorAll('input[type="number"]');
                     numberInputs.forEach(input => {
                         if (input.value && parseFloat(input.value) <= 0) {
-                            e.preventDefault();
-                            alert('El valor debe ser mayor a cero');
+                            // This basic alert is fine for non-AJAX forms
+                            alert('El valor debe ser un número mayor a cero.');
                             input.focus();
-                            return false;
+                            formIsValid = false;
                         }
                     });
-                    return true;
+                    if (!formIsValid) {
+                         e.preventDefault();
+                    }
+                    return formIsValid;
                 });
             });
+
+             // Specific handling for incomeForm if it exists and is NOT an edit form
+            const incomeForm = document.getElementById('incomeForm');
+            if (incomeForm) {
+                const isEditForm = incomeForm.action.includes('action=update'); // A way to check if it's an edit form
+                
+                if (!isEditForm) {
+                    // The AJAX submission logic for incomeForm is now expected to be in income_form.php
+                    // This general validation can be a fallback or complement.
+                    // If income_form.php handles its own validation entirely before fetch, this might be redundant for that specific form.
+                } else {
+                     // For edit form (non-AJAX), ensure basic validation
+                    incomeForm.addEventListener('submit', function(e) {
+                        let formIsValid = true;
+                        const valueInput = incomeForm.querySelector('#value'); // Assuming ID 'value'
+                        if (valueInput && (isNaN(parseFloat(valueInput.value)) || parseFloat(valueInput.value) <= 0)) {
+                            alert('El valor del ingreso debe ser un número mayor a cero.');
+                            valueInput.focus();
+                            formIsValid = false;
+                        }
+                        // Add other non-AJAX validations for edit form if needed
+                        if (!formIsValid) {
+                            e.preventDefault();
+                        }
+                        return formIsValid;
+                    });
+                }
+            }
         });
     </script>
 </body>
