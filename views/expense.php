@@ -11,9 +11,8 @@
         } elseif (stripos($message_text, 'correctamente') !== false) {
             $message_type = 'success';
         }
-         echo "<div class='alert alert-$message_type alert-dismissible fade show' role='alert'>";
+         echo "<div class='alert $message_type'>";
          echo $message_text;
-         echo '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
          echo '</div>';
      }
     ?>
@@ -21,19 +20,19 @@
     <?php
     if (isset($action) && $action == 'edit' && isset($expenseToEdit)):
     ?>
-    <div class="card mb-4">
-        <div class="card-header bg-warning text-white">
+    <div class="card-custom mb-4-custom">
+        <div class="card-header-custom warning text-white-custom">
             <h2>Modificar Gasto Existente</h2>
         </div>
-        <div class="card-body">
+        <div class="card-body-custom">
             <form action="index.php?controller=expense&action=update" method="post">
                 <input type="hidden" name="id" value="<?= htmlspecialchars($expenseToEdit['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
 
-                <div class="row">
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="editCategory" class="form-label">Categoría</label>
-                            <select name="category" id="editCategory" class="form-control" required>
+                <div class="row-custom">
+                    <div class="col-md-4-custom">
+                        <div class="form-group-custom mb-3-custom">
+                            <label for="editCategory" class="form-label-custom">Categoría</label>
+                            <select name="category" id="editCategory" class="form-control-custom" required>
                                 <option value="">Seleccione...</option>
                                 <?php
                                 foreach ($categories as $category): ?>
@@ -47,23 +46,23 @@
                         </div>
                     </div>
 
-                    <div class="col-md-4">
-                         <div class="mb-3">
-                            <label class="form-label">Mes (No modificable)</label>
-                            <input type="text" class="form-control" value="<?= htmlspecialchars($expenseToEdit['month'] ?? '', ENT_QUOTES, 'UTF-8') ?>" disabled>
+                    <div class="col-md-4-custom">
+                         <div class="form-group-custom mb-3-custom">
+                            <label class="form-label-custom">Mes (No modificable)</label>
+                            <input type="text" class="form-control-custom" value="<?= htmlspecialchars($expenseToEdit['month'] ?? '', ENT_QUOTES, 'UTF-8') ?>" disabled>
                          </div>
                     </div>
-                     <div class="col-md-4">
-                         <div class="mb-3">
-                             <label class="form-label">Año (No modificable)</label>
-                            <input type="text" class="form-control" value="<?= htmlspecialchars($expenseToEdit['year'] ?? '', ENT_QUOTES, 'UTF-8') ?>" disabled>
+                     <div class="col-md-4-custom">
+                         <div class="form-group-custom mb-3-custom">
+                             <label class="form-label-custom">Año (No modificable)</label>
+                            <input type="text" class="form-control-custom" value="<?= htmlspecialchars($expenseToEdit['year'] ?? '', ENT_QUOTES, 'UTF-8') ?>" disabled>
                          </div>
                     </div>
 
-                    <div class="col-md-4">
-                        <div class="mb-3">
-                            <label for="editValue" class="form-label">Valor</label>
-                            <input type="number" name="value" id="editValue" class="form-control"
+                    <div class="col-md-4-custom">
+                        <div class="form-group-custom mb-3-custom">
+                            <label for="editValue" class="form-label-custom">Valor</label>
+                            <input type="number" name="value" id="editValue" class="form-control-custom"
                                    step="0.01" min="0.01"
                                    value="<?= htmlspecialchars(number_format($expenseToEdit['value'] ?? 0, 2, '.', ''), ENT_QUOTES, 'UTF-8') ?>" required>
                             <span class="text-danger" id="editValueError"></span>
@@ -71,7 +70,7 @@
                     </div>
                 </div>
 
-                 <div class="d-flex justify-content-end gap-2 mt-3">
+                 <div class="d-flex-custom justify-content-end-custom gap-2-custom mt-3-custom">
                     <button type="submit" class="btn btn-warning btn-sm">
                          <i class="fas fa-edit"></i> Actualizar Gasto
                     </button>
@@ -87,17 +86,17 @@
     <?php
      if (!isset($action) || $action != 'edit' || !isset($expenseToEdit)):
     ?>
-    <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
+    <div class="card-custom mb-4-custom">
+        <div class="card-header-custom primary text-white-custom">
             <h2>Registrar Nuevo Gasto</h2>
         </div>
-        <div class="card-body">
+        <div class="card-body-custom">
             <form action="index.php?controller=expense&action=register" method="post">
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="mb-3">
-                            <label for="regMonth" class="form-label">Mes</label>
-                            <select name="month" id="regMonth" class="form-control" required>
+                <div class="row-custom">
+                    <div class="col-md-3-custom">
+                        <div class="form-group-custom mb-3-custom">
+                            <label for="regMonth" class="form-label-custom">Mes</label>
+                            <select name="month" id="regMonth" class="form-control-custom" required>
                                 <option value="">Seleccione...</option>
                                 <?php
                                 $months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -113,20 +112,20 @@
                         </div>
                     </div>
 
-                    <div class="col-md-3">
-                        <div class="mb-3">
-                            <label for="regYear" class="form-label">Año</label>
-                            <input type="number" name="year" id="regYear" class="form-control"
+                    <div class="col-md-3-custom">
+                        <div class="form-group-custom mb-3-custom">
+                            <label for="regYear" class="form-label-custom">Año</label>
+                            <input type="number" name="year" id="regYear" class="form-control-custom"
                                    min="1900" max="2100"
                                    value="<?= htmlspecialchars($_POST['year'] ?? date('Y'), ENT_QUOTES, 'UTF-8') ?>" required>
                             <span class="text-danger" id="regYearError"></span>
                         </div>
                     </div>
 
-                    <div class="col-md-3">
-                        <div class="mb-3">
-                            <label for="regCategory" class="form-label">Categoría</label>
-                            <select name="category" id="regCategory" class="form-control" required>
+                    <div class="col-md-3-custom">
+                        <div class="form-group-custom mb-3-custom">
+                            <label for="regCategory" class="form-label-custom">Categoría</label>
+                            <select name="category" id="regCategory" class="form-control-custom" required>
                                 <option value="">Seleccione...</option>
                                 <?php
                                 foreach ($categories as $category): ?>
@@ -141,10 +140,10 @@
                         </div>
                     </div>
 
-                    <div class="col-md-3">
-                        <div class="mb-3">
-                            <label for="regValue" class="form-label">Valor</label>
-                            <input type="number" name="value" id="regValue" class="form-control"
+                    <div class="col-md-3-custom">
+                        <div class="form-group-custom mb-3-custom">
+                            <label for="regValue" class="form-label-custom">Valor</label>
+                            <input type="number" name="value" id="regValue" class="form-control-custom"
                                    step="0.01" min="0.01"
                                    value="<?= htmlspecialchars($_POST['value'] ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
                             <span class="text-danger" id="regValueError"></span>
@@ -152,26 +151,25 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary mt-3 btn-sm">
+                <button type="submit" class="btn btn-primary mt-3-custom btn-sm">
                     <i class="fas fa-plus"></i> Registrar Gasto
                 </button>
-
             </form>
         </div>
     </div>
     <?php endif; ?>
 
-    <div class="card shadow">
-        <div class="card-header py-3">
-             <h6 class="m-0 font-weight-bold text-primary">Gastos Registrados</h6>
+    <div class="card-custom shadow-custom">
+        <div class="card-header-custom primary py-3-custom">
+             <h6 class="m-0-custom font-weight-bold-custom text-white-custom">Gastos Registrados</h6>
         </div>
-        <div class="card-body">
+        <div class="card-body-custom">
             <?php if (empty($expenses)): ?>
-                <div class="alert alert-info">No hay gastos registrados todavía.</div>
+                <div class="alert info">No hay gastos registrados todavía.</div>
             <?php else: ?>
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover">
-                        <thead class="thead-dark">
+                <div class="table-responsive-custom">
+                    <table class="table-custom table-striped-custom table-hover-custom">
+                        <thead class="thead-dark-custom">
                             <tr>
                                 <th>ID</th>
                                 <th>Categoría</th>
@@ -190,7 +188,7 @@
                                     <td><?= htmlspecialchars($expense['year'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                                     <td>$<?= htmlspecialchars(number_format($expense['value'] ?? 0, 2, ',', '.'), ENT_QUOTES, 'UTF-8') ?></td>
                                     <td>
-                                        <div class="d-flex gap-2">
+                                        <div class="d-flex-custom gap-2-custom">
                                             <a href="index.php?controller=expense&action=edit&id=<?= htmlspecialchars($expense['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                                class="btn btn-sm btn-primary">
                                                 <i class="fas fa-edit"></i> Modificar
@@ -211,7 +209,7 @@
         </div>
     </div>
 
-    <div class="mt-3">
+    <div class="mt-3-custom">
          <a href="index.php?controller=income" class="btn btn-secondary">
             <i class="fas fa-arrow-circle-left"></i> Ver Ingresos
          </a>

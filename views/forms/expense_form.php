@@ -11,7 +11,7 @@
         } elseif (stripos($message_text, 'correctamente') !== false) {
             $message_type = 'success';
         }
-         echo "<div class='message $message_type'>";
+         echo "<div class='alert $message_type'>";
          echo $message_text;
          echo '</div>';
      }
@@ -24,9 +24,9 @@
             <input type="hidden" name="id" value="<?php echo htmlspecialchars($expense['id'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
         <?php endif; ?>
 
-        <div class="form-group">
-            <label for="category">Categoría:</label>
-            <select name="category" id="category" class="form-control" required>
+        <div class="form-group-custom">
+            <label for="category" class="form-label-custom">Categoría:</label>
+            <select name="category" id="category" class="form-control-custom" required>
                 <option value="">Seleccione una categoría</option>
                 <?php
                  foreach ($categories as $category):
@@ -42,9 +42,9 @@
         <?php
         if (!isset($action) || $action != 'edit'):
         ?>
-            <div class="form-group">
-                <label for="month">Mes:</label>
-                <select name="month" id="month" class="form-control" required>
+            <div class="form-group-custom">
+                <label for="month" class="form-label-custom">Mes:</label>
+                <select name="month" id="month" class="form-control-custom" required>
                     <option value="">Seleccione un mes</option>
                     <?php
                      $months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -59,17 +59,17 @@
                 </select>
             </div>
 
-            <div class="form-group">
-                <label for="year">Año:</label>
-                <input type="number" name="year" id="year" class="form-control"
+            <div class="form-group-custom">
+                <label for="year" class="form-label-custom">Año:</label>
+                <input type="number" name="year" id="year" class="form-control-custom"
                        min="1900" max="2100"
                        value="<?php echo htmlspecialchars($_POST['year'] ?? date('Y'), ENT_QUOTES, 'UTF-8'); ?>" required>
             </div>
         <?php endif; ?>
 
-        <div class="form-group">
-            <label for="value">Valor del Gasto:</label>
-            <input type="number" name="value" id="value" class="form-control"
+        <div class="form-group-custom">
+            <label for="value" class="form-label-custom">Valor del Gasto:</label>
+            <input type="number" name="value" id="value" class="form-control-custom"
                    min="0.01" step="0.01"
                    value="<?php echo isset($expense) ? htmlspecialchars(number_format($expense['value'] ?? 0, 2, '.', ''), ENT_QUOTES, 'UTF-8') : htmlspecialchars($_POST['value'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" required>
         </div>

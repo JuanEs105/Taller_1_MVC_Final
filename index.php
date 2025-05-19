@@ -7,7 +7,8 @@ require_once 'controllers/ReportController.php';
 header("X-Frame-Options: DENY");
 header("X-Content-Type-Options: nosniff");
 header("X-XSS-Protection: 1; mode=block");
-header("Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; img-src 'self' data:; connect-src 'self';");
+header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; script-src 'self' 'unsafe-inline';");
+
 
 $controller = isset($_GET['controller']) ? strtolower($_GET['controller']) : 'income';
 $action = isset($_GET['action']) ? strtolower($_GET['action']) : 'index';
@@ -49,37 +50,31 @@ if ($controller == 'report' && $action == 'view') {
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Reporte de <?= htmlspecialchars($month, ENT_QUOTES, 'UTF-8') ?> <?= htmlspecialchars($year, ENT_QUOTES, 'UTF-8') ?></title>
-                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                <link rel="stylesheet" href="views/css/styles.css">
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-                <style>
-                    body { padding: 20px; }
-                    .table th, .table td { vertical-align: middle; }
-                    .badge { font-size: 0.9em; }
-                     @media print {
-                         .btn, .mb-3 { display: none !important; }
-                         .card { border: 1px solid #ccc; }
-                         .no-print { display: none !important; }
-                     }
-                </style>
+
             </head>
             <body>
-                <div class="container">
-                     <div class="row mb-3">
-                        <div class="col text-center">
-                           
-                            <h1>Reporte Financiero Mensual</h1>
-                            <h2><?= htmlspecialchars($reportData['month'] ?? '', ENT_QUOTES, 'UTF-8') ?> <?= htmlspecialchars($reportData['year'] ?? '', ENT_QUOTES, 'UTF-8') ?></h2>
-                        </div>
+                <div class="report-container">
+                    <div class="report-header print-only">
+                         <h1>Reporte Financiero Mensual</h1>
+                         <h2><?= htmlspecialchars($reportData['month'] ?? '', ENT_QUOTES, 'UTF-8') ?> <?= htmlspecialchars($reportData['year'] ?? '', ENT_QUOTES, 'UTF-8') ?></h2>
                     </div>
                     <?php include 'views/report.php'; ?>
 
-                     <div class="d-flex justify-content-center gap-3 mt-4 no-print">
+                     <div class="d-flex-custom justify-content-center-custom gap-3-custom mt-4-custom no-print">
                         <button class="btn btn-primary" onclick="window.print()"><i class="fas fa-print"></i> Imprimir / Guardar PDF</button>
                         <a href="index.php?controller=report&action=form" class="btn btn-secondary"><i class="fas fa-arrow-circle-left"></i> Volver</a>
                     </div>
 
                 </div>
-                 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+                <script>
+                    function printReport() {
+                        window.print();
+                    }
+                     // Puedes llamar a printReport() directamente con onclick en el botón
+                     // <button class="btn btn-primary" onclick="printReport()"><i class="fas fa-print"></i> Imprimir / Guardar PDF</button>
+                </script>
             </body>
             </html>
             <?php
@@ -91,11 +86,11 @@ if ($controller == 'report' && $action == 'view') {
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>Error al Generar Reporte</title>
-                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                <link rel="stylesheet" href="views/css/styles.css">
             </head>
             <body>
-                <div class="container mt-5">
-                    <div class="alert alert-danger">
+                <div class="error-container">
+                    <div class="alert danger">
                         <?= htmlspecialchars($result['message'], ENT_QUOTES, 'UTF-8') ?>
                     </div>
                     <a href="index.php?controller=report&action=form" class="btn btn-primary">Volver al Formulario de Reporte</a>
@@ -112,11 +107,11 @@ if ($controller == 'report' && $action == 'view') {
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Error de Parámetros</title>
-            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+            <link rel="stylesheet" href="views/css/styles.css">
         </head>
         <body>
-            <div class="container mt-5">
-                <div class="alert alert-danger">
+            <div class="error-container">
+                <div class="alert danger">
                     Parámetros de mes o año inválidos para ver el reporte.
                 </div>
                 <a href="index.php?controller=report&action=form" class="btn btn-primary">Volver al Formulario de Reporte</a>
@@ -136,34 +131,23 @@ if ($controller == 'report' && $action == 'view') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Gestión Financiera</title>
     <link rel="stylesheet" href="views/css/styles.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .text-danger {
-            font-size: 0.875em;
-            display: block;
-            margin-top: 0.25rem;
-        }
-         @media print {
-            .no-print { display: none !important; }
-        }
-    </style>
 </head>
 <body>
     <div class="container-fluid">
-        <header class="header bg-primary text-white p-3 mb-4 rounded no-print">
+        <header class="header no-print">
             <h1 class="text-center">Control Financiero</h1>
-            <nav class="nav nav-pills nav-fill">
-                <a href="index.php?controller=income" class="nav-link <?= $controller == 'income' ? 'active bg-white text-primary' : 'text-white' ?>">
+            <nav class="nav-tabs">
+                <a href="index.php?controller=income" class="nav-link <?= $controller == 'income' ? 'active' : '' ?>">
                     <i class="fas fa-money-bill-wave"></i> Ingresos
                 </a>
-                <a href="index.php?controller=expense" class="nav-link <?= $controller == 'expense' ? 'active bg-white text-primary' : 'text-white' ?>">
+                <a href="index.php?controller=expense" class="nav-link <?= $controller == 'expense' ? 'active' : '' ?>">
                     <i class="fas fa-receipt"></i> Gastos
                 </a>
-                <a href="index.php?controller=category" class="nav-link <?= $controller == 'category' ? 'active bg-white text-primary' : 'text-white' ?>">
+                <a href="index.php?controller=category" class="nav-link <?= $controller == 'category' ? 'active' : '' ?>">
                     <i class="fas fa-tags"></i> Categorías
                 </a>
-                <a href="index.php?controller=report&action=form" class="nav-link <?= $controller == 'report' ? 'active bg-white text-primary' : 'text-white' ?>">
+                <a href="index.php?controller=report&action=form" class="nav-link <?= $controller == 'report' ? 'active' : '' ?>">
                     <i class="fas fa-chart-pie"></i> Reportes
                 </a>
             </nav>
@@ -171,13 +155,12 @@ if ($controller == 'report' && $action == 'view') {
 
         <?php
         if ($message_text): ?>
-            <div id="globalMessage" class="alert alert-dismissible alert-<?= $message_type ?> fade show no-print" role="alert">
+            <div id="globalMessage" class="alert <?= $message_type ?> no-print" role="alert">
                 <?= $message_text ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         <?php endif; ?>
 
-        <main class="content bg-light p-4 rounded">
+        <main class="content">
             <?php
             switch ($controller) {
                 case 'income':
@@ -372,23 +355,5 @@ if ($controller == 'report' && $action == 'view') {
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function confirmAction(message) {
-            return confirm(message || '¿Está seguro de realizar esta acción?');
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const globalAlert = document.getElementById('globalMessage');
-            if (globalAlert) {
-                const bsAlert = new bootstrap.Alert(globalAlert);
-                setTimeout(() => {
-                     if (globalAlert.parentNode) {
-                         globalAlert.parentNode.removeChild(globalAlert);
-                     }
-                }, 5000);
-            }
-        });
-    </script>
 </body>
 </html>

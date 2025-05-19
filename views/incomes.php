@@ -11,9 +11,8 @@
         } elseif (stripos($message_text, 'correctamente') !== false || stripos($message_text, 'sin cambios') !== false) {
             $message_type = 'success';
         }
-         echo "<div class='alert alert-$message_type alert-dismissible fade show' role='alert'>";
+         echo "<div class='alert $message_type'>";
          echo $message_text;
-         echo '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
          echo '</div>';
      }
     ?>
@@ -22,18 +21,18 @@
     include 'views/forms/income_form.php';
     ?>
 
-    <div class="card shadow mt-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Ingresos Registrados</h6>
+    <div class="card-custom shadow-custom mt-4-custom">
+        <div class="card-header-custom primary py-3-custom">
+            <h6 class="m-0-custom font-weight-bold-custom text-white-custom">Ingresos Registrados</h6>
         </div>
-         <div class="card-body">
+         <div class="card-body-custom">
             <div class="table-container">
                 <?php if (empty($incomes)): ?>
-                    <div class="alert alert-info">No hay ingresos registrados todavía.</div>
+                    <div class="alert info">No hay ingresos registrados todavía.</div>
                 <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead class="thead-dark">
+                    <div class="table-responsive-custom">
+                        <table class="table-custom table-striped-custom table-hover-custom">
+                            <thead class="thead-dark-custom">
                                 <tr>
                                     <th>ID</th>
                                     <th>Mes</th>

@@ -12,45 +12,44 @@ if (!isset($categoryController)) {
     $message_type = 'info';
 
     if ($message_text) {
-        if (stripos($message_text, 'Error') !== false || stripos($message_text, 'no encontrado') !== false || stripos($message_text, 'inválido') !== false || stripos( $message_text, 'permitidos') !== false) {
+        if (stripos($message_text, 'Error') !== false || stripos($message_text, 'no encontrado') !== false || stripos($message_text, 'inválido') !== false || stripos($message_text, 'permitidos') !== false) {
             $message_type = 'danger';
         } elseif (stripos($message_text, 'correctamente') !== false) {
             $message_type = 'success';
         }
-        echo "<div class='alert alert-$message_type alert-dismissible fade show' role='alert'>";
+        echo "<div class='alert $message_type'>";
         echo $message_text;
-        echo '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
         echo '</div>';
     }
     ?>
 
-    <div class="card shadow">
-        <div class="card-header py-3 d-flex justify-content-between align-items-center">
-            <h6 class="m-0 font-weight-bold text-primary">Listado de Categorías</h6>
+    <div class="card-custom shadow-custom">
+        <div class="card-header-custom primary d-flex-custom justify-content-between-custom align-items-center-custom py-3-custom">
+            <h6 class="m-0-custom font-weight-bold-custom text-white-custom">Listado de Categorías</h6>
             <a href="index.php?controller=category&action=register" class="btn btn-success btn-sm">
                 <i class="fas fa-plus"></i> Nueva
             </a>
         </div>
 
-        <div class="card-body">
+        <div class="card-body-custom">
             <?php
             if (isset($action) && ($action == 'register' || ($action == 'edit' && isset($category)))):
             ?>
-                <div class="row mb-4">
-                    <div class="col-md-6 mx-auto">
-                        <div class="card">
-                            <div class="card-header bg-<?= $action == 'register' ? 'primary' : 'warning' ?> text-white">
+                <div class="row-custom mb-4-custom">
+                    <div class="col-md-6-custom mx-auto">
+                        <div class="card-custom">
+                            <div class="card-header-custom <?= $action == 'register' ? 'primary' : 'warning' ?> text-white-custom">
                                 <?= $action == 'register' ? 'Nueva Categoría' : 'Editar Categoría' ?>
                             </div>
-                            <div class="card-body">
+                            <div class="card-body-custom">
                                 <form id="categoryForm" method="POST" action="index.php?controller=category&action=<?= $action ?>">
-                                    <?php if ($action == 'edit' && isset($category)): ?>
+                                    <?php if (isset($action) && $action == 'edit' && isset($category)): ?>
                                         <input type="hidden" name="id" value="<?= htmlspecialchars($category['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                                     <?php endif; ?>
 
-                                    <div class="mb-3">
-                                        <label for="categoryName" class="form-label">Nombre</label>
-                                        <input type="text" name="name" id="categoryName" class="form-control"
+                                    <div class="form-group-custom mb-3-custom">
+                                        <label for="categoryName" class="form-label-custom">Nombre</label>
+                                        <input type="text" name="name" id="categoryName" class="form-control-custom"
                                                value="<?= htmlspecialchars($action == 'edit' ? ($category['name'] ?? '') : ($_POST['name'] ?? '') , ENT_QUOTES, 'UTF-8') ?>"
                                                required
                                                maxlength="<?= CategoryController::MAX_NAME_LENGTH ?? 50 ?>"
@@ -58,16 +57,16 @@ if (!isset($categoryController)) {
                                         <span class="text-danger" id="categoryNameError"></span>
                                     </div>
 
-                                    <div class="mb-3">
-                                        <label for="categoryPercentage" class="form-label">Porcentaje (%)</label>
-                                        <input type="number" name="percentage" id="categoryPercentage" class="form-control"
+                                    <div class="form-group-custom mb-3-custom">
+                                        <label for="categoryPercentage" class="form-label-custom">Porcentaje (%)</label>
+                                        <input type="number" name="percentage" id="categoryPercentage" class="form-control-custom"
                                                value="<?= htmlspecialchars($action == 'edit' ? ($category['percentage'] ?? '') : ($_POST['percentage'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                                                min="0.01" max="100" step="0.01" required
                                                placeholder="Ej: 10.50">
                                         <span class="text-danger" id="categoryPercentageError"></span>
                                     </div>
 
-                                    <div class="d-flex justify-content-end gap-2">
+                                    <div class="d-flex-custom justify-content-end-custom gap-2-custom">
                                         <button type="submit" class="btn btn-<?= $action == 'register' ? 'primary' : 'warning' ?> btn-sm">
                                             <i class="fas fa-save"></i> <?= $action == 'register' ? 'Guardar' : 'Actualizar' ?>
                                         </button>
@@ -82,9 +81,9 @@ if (!isset($categoryController)) {
                 </div>
             <?php endif; ?>
 
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover">
-                    <thead class="table-dark">
+            <div class="table-responsive-custom">
+                <table class="table-custom table-bordered-custom table-hover-custom">
+                    <thead class="thead-dark-custom">
                         <tr>
                             <th>ID</th>
                             <th>Nombre</th>
@@ -96,7 +95,7 @@ if (!isset($categoryController)) {
                     <tbody>
                         <?php if (empty($categories)): ?>
                             <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">No hay categorías registradas</td>
+                                <td colspan="5" class="text-center-custom py-4-custom text-muted-custom">No hay categorías registradas</td>
                             </tr>
                         <?php else: ?>
                             <?php foreach ($categories as $cat): ?>
@@ -108,12 +107,12 @@ if (!isset($categoryController)) {
                                     <td><?= htmlspecialchars($cat['name'] ?? '', ENT_QUOTES, 'UTF-8') ?></td>
                                     <td><?= number_format($cat['percentage'] ?? 0, 2) ?>%</td>
                                     <td>
-                                        <span class="badge bg-<?= $enUso ? 'warning' : 'success' ?>">
+                                        <span class="badge-custom <?= $enUso ? 'warning' : 'success' ?>">
                                             <?= $enUso ? 'En uso' : 'Disponible' ?>
                                         </span>
                                     </td>
                                     <td>
-                                        <div class="d-flex gap-2">
+                                        <div class="d-flex-custom gap-2-custom">
                                             <a href="index.php?controller=category&action=edit&id=<?= htmlspecialchars($cat['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
                                                class="btn btn-primary btn-sm"
                                                title="Editar categoría">
