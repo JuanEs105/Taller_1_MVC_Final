@@ -4,10 +4,6 @@ require_once 'controllers/ExpenseController.php';
 require_once 'controllers/CategoryController.php';
 require_once 'controllers/ReportController.php';
 
-header("X-Frame-Options: DENY");
-header("X-Content-Type-Options: nosniff");
-header("X-XSS-Protection: 1; mode=block");
-header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; script-src 'self' 'unsafe-inline';");
 
 
 $controller = isset($_GET['controller']) ? strtolower($_GET['controller']) : 'income';
