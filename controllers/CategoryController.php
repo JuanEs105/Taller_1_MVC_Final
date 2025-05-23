@@ -5,139 +5,33 @@ require_once 'models/entities/Category.php';
 class CategoryController {
     private $db;
 
-    // Definir constantes para validación de nombre
     const MIN_NAME_LENGTH = 2;
     const MAX_NAME_LENGTH = 50;
-    // Permitir letras (acentuadas y ñ), números, espacios, guiones y apóstrofes
-    // El modificador 'u' es para soporte UTF-8
     const VALID_NAME_PATTERN = '/^[a-zA-Z0-9\sáéíóúÁÉÍÓÚñÑ\'\-,]+$/u';
-
 
     public function __construct() {
         $database = new Database();
         $this->db = $database->getConnection();
     }
 
-    /**
-     * Registra una nueva categoría.
-     *
-     * @param string $name Nombre de la categoría.
-     * @param float|string $percentage Porcentaje asociado a la categoría.
-     * @return array Resultado de la operación (success, message).
-     */
     public function registerCategory($name, $percentage) {
         try {
-            // === Validaciones ===
             $name = trim($name);
 
-            // Validación de nombre vacío
             if (empty($name)) {
                 throw new Exception("El nombre de la categoría es requerido.");
             }
 
-            // Validación de longitud del nombre
-            // Usamos mb_strlen para contar correctamente caracteres multi-byte (UTF-8)
             if (mb_strlen($name, 'UTF-8') < self::MIN_NAME_LENGTH || mb_strlen($name, 'UTF-8') > self::MAX_NAME_LENGTH) {
                  throw new Exception("El nombre de la categoría debe tener entre " . self::MIN_NAME_LENGTH . " y " . self::MAX_NAME_LENGTH . " caracteres.");
             }
 
-            // Validación de caracteres permitidos en el nombre
-            // Usamos preg_match con el patrón y el modificador 'u'
             if (!preg_match(self::VALID_NAME_PATTERN, $name)) {
                  throw new Exception("El nombre de la categoría contiene caracteres no permitidos.");
             }
 
-            // Sanitizar porcentaje (reemplazar coma por punto si es necesario para asegurar floatval correcto)
             $percentage = str_replace(',', '.', $percentage);
 
-            // Validación del porcentaje
-            if (!is_numeric($percentage)) {
-                 throw new Exception("El porcentaje debe ser un número válido.");
-            }
-
-            $percentage = floatval($percentage); // Convertir a float después de verificar que es numérico
-
-            // Validar rango del porcentaje (coincide con el front-end min="0.01")
-            if ($percentage < 0.01 || $percentage > 100) {
-                throw new Exception("El porcentaje debe ser un número entre 0.01 y 100.");
-            }
-
-            // Verificar si ya existe una categoría con ese nombre (sensible a mayúsculas/minúsculas por defecto de MySQL)
-            // Si necesitas que no sea sensible, usa LOWER(name) en la consulta y LOWER(:name) en el bind
-            $query = "SELECT id FROM categories WHERE name = :name";
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':name', $name);
-            $stmt->execute();
-
-            if ($stmt->fetch()) {
-                throw new Exception("Ya existe una categoría con ese nombre.");
-            }
-
-            // === Registrar la nueva categoría ===
-            $query = "INSERT INTO categories (name, percentage) VALUES (:name, :percentage)";
-            $stmt = $this->db->prepare($query);
-            $stmt->bindParam(':name', $name);
-            $stmt->bindParam(':percentage', $percentage);
-
-            // Ejecutar la inserción
-            if ($stmt->execute()) {
-                return [
-                    'success' => true,
-                    'message' => 'Categoría registrada correctamente.'
-                ];
-            } else {
-                // Error en la ejecución de la consulta
-                // Puedes loguear $stmt->errorInfo() para depuración si es necesario
-                throw new Exception("Error desconocido al registrar la categoría.");
-            }
-        } catch (Exception $e) {
-            // Capturar excepciones y retornar el mensaje de error
-            error_log("Error en registerCategory: " . $e->getMessage()); // Loguear el error en el servidor
-            return [
-                'success' => false,
-                'message' => $e->getMessage() // Retornar el mensaje específico de la validación o error
-            ];
-        }
-    }
-
-    /**
-     * Actualiza una categoría existente.
-     *
-     * @param int $id ID de la categoría a actualizar.
-     * @param string $name Nuevo nombre de la categoría.
-     * @param float|string $percentage Nuevo porcentaje asociado.
-     * @return array Resultado de la operación (success, message).
-     */
-    public function updateCategory($id, $name, $percentage) {
-        try {
-            // === Validaciones ===
-            // Validar que el ID es un entero positivo válido
-            $id = filter_var($id, FILTER_VALIDATE_INT);
-            if ($id === false || $id <= 0) {
-                throw new Exception("ID de categoría inválido para actualizar.");
-            }
-
-            $name = trim($name);
-
-            // Validación de nombre vacío
-            if (empty($name)) {
-                throw new Exception("El nombre de la categoría es requerido.");
-            }
-
-             // Validación de longitud del nombre
-            if (mb_strlen($name, 'UTF-8') < self::MIN_NAME_LENGTH || mb_strlen($name, 'UTF-8') > self::MAX_NAME_LENGTH) {
-                 throw new Exception("El nombre de la categoría debe tener entre " . self::MIN_NAME_LENGTH . " y " . self::MAX_NAME_LENGTH . " caracteres.");
-            }
-
-            // Validación de caracteres permitidos en el nombre
-             if (!preg_match(self::VALID_NAME_PATTERN, $name)) {
-                 throw new Exception("El nombre de la categoría contiene caracteres no permitidos.");
-            }
-
-            // Sanitizar porcentaje
-             $percentage = str_replace(',', '.', $percentage);
-
-             // Validación del porcentaje
             if (!is_numeric($percentage)) {
                  throw new Exception("El porcentaje debe ser un número válido.");
             }
@@ -148,7 +42,70 @@ class CategoryController {
                 throw new Exception("El porcentaje debe ser un número entre 0.01 y 100.");
             }
 
-            // Verificar si la categoría con este ID existe
+            $query = "SELECT id FROM categories WHERE name = :name";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':name', $name);
+            $stmt->execute();
+
+            if ($stmt->fetch()) {
+                throw new Exception("Ya existe una categoría con ese nombre.");
+            }
+
+            $query = "INSERT INTO categories (name, percentage) VALUES (:name, :percentage)";
+            $stmt = $this->db->prepare($query);
+            $stmt->bindParam(':name', $name);
+            $stmt->bindParam(':percentage', $percentage);
+
+            if ($stmt->execute()) {
+                return [
+                    'success' => true,
+                    'message' => 'Categoría registrada correctamente.'
+                ];
+            } else {
+                throw new Exception("Error desconocido al registrar la categoría.");
+            }
+        } catch (Exception $e) {
+            error_log("Error en registerCategory: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+    public function updateCategory($id, $name, $percentage) {
+        try {
+            $id = filter_var($id, FILTER_VALIDATE_INT);
+            if ($id === false || $id <= 0) {
+                throw new Exception("ID de categoría inválido para actualizar.");
+            }
+
+            $name = trim($name);
+
+            if (empty($name)) {
+                throw new Exception("El nombre de la categoría es requerido.");
+            }
+
+            if (mb_strlen($name, 'UTF-8') < self::MIN_NAME_LENGTH || mb_strlen($name, 'UTF-8') > self::MAX_NAME_LENGTH) {
+                 throw new Exception("El nombre de la categoría debe tener entre " . self::MIN_NAME_LENGTH . " y " . self::MAX_NAME_LENGTH . " caracteres.");
+            }
+
+            if (!preg_match(self::VALID_NAME_PATTERN, $name)) {
+                 throw new Exception("El nombre de la categoría contiene caracteres no permitidos.");
+            }
+
+            $percentage = str_replace(',', '.', $percentage);
+
+            if (!is_numeric($percentage)) {
+                 throw new Exception("El porcentaje debe ser un número válido.");
+            }
+
+            $percentage = floatval($percentage);
+
+            if ($percentage < 0.01 || $percentage > 100) {
+                throw new Exception("El porcentaje debe ser un número entre 0.01 y 100.");
+            }
+
             $query = "SELECT id FROM categories WHERE id = :id";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
@@ -158,7 +115,6 @@ class CategoryController {
                 throw new Exception("La categoría a actualizar no existe.");
             }
 
-            // Verificar si el nuevo nombre ya está en uso por OTRA categoría
             $query = "SELECT id FROM categories WHERE name = :name AND id != :id";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':name', $name);
@@ -169,7 +125,6 @@ class CategoryController {
                 throw new Exception("Ya existe otra categoría con ese nombre.");
             }
 
-            // === Actualizar la categoría ===
             $query = "UPDATE categories SET name = :name, percentage = :percentage WHERE id = :id";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':name', $name);
@@ -201,21 +156,13 @@ class CategoryController {
         }
     }
 
-    /**
-     * Elimina una categoría por su ID.
-     *
-     * @param int $id ID de la categoría a eliminar.
-     * @return array Resultado de la operación (success, message).
-     */
     public function deleteCategory($id) {
         try {
-            // Validar que el ID es un entero positivo válido
             $id = filter_var($id, FILTER_VALIDATE_INT);
             if ($id === false || $id <= 0) {
                 throw new Exception("ID de categoría inválido para eliminar.");
             }
 
-            // Primero verificar si la categoría existe
             $query = "SELECT id FROM categories WHERE id = :id";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
@@ -225,12 +172,10 @@ class CategoryController {
                 throw new Exception("La categoría a eliminar no existe.");
             }
 
-            // Verificar si la categoría está en uso antes de eliminar
             if ($this->isCategoryInUse($id)) {
                 throw new Exception("No se puede eliminar: la categoría tiene gastos asociados.");
             }
 
-            // === Eliminar la categoría ===
             $query = "DELETE FROM categories WHERE id = :id";
             $stmt = $this->db->prepare($query);
             $stmt->bindParam(':id', $id, PDO::PARAM_INT);
@@ -257,11 +202,6 @@ class CategoryController {
         }
     }
 
-    /**
-     * Obtiene todas las categorías.
-     *
-     * @return array Lista de categorías o array vacío en caso de error.
-     */
     public function getAllCategories() {
         try {
             $stmt = $this->db->query("SELECT id, name, percentage FROM categories ORDER BY name");
@@ -272,12 +212,6 @@ class CategoryController {
         }
     }
 
-    /**
-     * Obtiene una categoría por su ID.
-     *
-     * @param int $id ID de la categoría.
-     * @return array|false Array asociativo de la categoría o false si no se encuentra/error.
-     */
     public function getCategoryById($id) {
         try {
             $id = filter_var($id, FILTER_VALIDATE_INT);
@@ -296,12 +230,6 @@ class CategoryController {
         }
     }
 
-    /**
-     * Verifica si una categoría está siendo utilizada por algún gasto.
-     *
-     * @param int $categoryId ID de la categoría.
-     * @return bool True si está en uso, false si no, true en caso de error por seguridad.
-     */
     public function isCategoryInUse($categoryId) {
         try {
             $categoryId = filter_var($categoryId, FILTER_VALIDATE_INT);
