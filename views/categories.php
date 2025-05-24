@@ -9,14 +9,16 @@ if (!isset($categoryController)) {
 
     <?php
     $message_text = isset($_GET['message']) ? htmlspecialchars($_GET['message'], ENT_QUOTES, 'UTF-8') : null;
-    $message_type = 'info';
+    $message_type = 'info'; // Default message type
 
     if ($message_text) {
-        if (stripos($message_text, 'Error') !== false || stripos($message_text, 'no encontrado') !== false || stripos($message_text, 'inválido') !== false || stripos($message_text, 'permitidos') !== false) {
+        // Determine message type based on content
+        if (stripos($message_text, 'Error') !== false || stripos($message_text, 'no encontrado') !== false || stripos($message_text, 'inválido') !== false || stripos($message_text, 'permitidos') !== false || stripos($message_text, 'requerido') !== false || stripos($message_text, 'debe ser') !== false || stripos($message_text, 'existe') !== false) {
             $message_type = 'danger';
-        } elseif (stripos($message_text, 'correctamente') !== false) {
+        } elseif (stripos($message_text, 'correctamente') !== false || stripos($message_text, 'sin cambios') !== false) {
             $message_type = 'success';
         }
+        // If no specific keywords for danger or success, it remains 'info' or you can add more specific checks
         echo "<div class='alert $message_type'>";
         echo $message_text;
         echo '</div>';
@@ -33,16 +35,17 @@ if (!isset($categoryController)) {
 
         <div class="card-body-custom">
             <?php
+            // Show form for 'register' action or 'edit' action if a category is loaded
             if (isset($action) && ($action == 'register' || ($action == 'edit' && isset($category)))):
             ?>
                 <div class="row-custom mb-4-custom">
                     <div class="col-md-6-custom mx-auto">
                         <div class="card-custom">
-                            <div class="card-header-custom <?= $action == 'register' ? 'primary' : 'warning' ?> text-white-custom">
-                                <?= $action == 'register' ? 'Nueva Categoría' : 'Editar Categoría' ?>
+                            <div class="card-header-custom <?= ($action == 'edit' && isset($category)) ? 'warning' : 'primary' ?> text-white-custom">
+                                <?= ($action == 'edit' && isset($category)) ? 'Editar Categoría' : 'Nueva Categoría' ?>
                             </div>
                             <div class="card-body-custom">
-                                <form id="categoryForm" method="POST" action="index.php?controller=category&action=<?= $action ?>">
+                                <form id="categoryForm" method="POST" action="index.php?controller=category&action=<?= ($action == 'edit' && isset($category)) ? 'update' : 'register' ?>">
                                     <?php if (isset($action) && $action == 'edit' && isset($category)): ?>
                                         <input type="hidden" name="id" value="<?= htmlspecialchars($category['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                                     <?php endif; ?>
@@ -50,7 +53,7 @@ if (!isset($categoryController)) {
                                     <div class="form-group-custom mb-3-custom">
                                         <label for="categoryName" class="form-label-custom">Nombre</label>
                                         <input type="text" name="name" id="categoryName" class="form-control-custom"
-                                               value="<?= htmlspecialchars($action == 'edit' ? ($category['name'] ?? '') : ($_POST['name'] ?? '') , ENT_QUOTES, 'UTF-8') ?>"
+                                               value="<?= htmlspecialchars(($action == 'edit' && isset($category)) ? ($category['name'] ?? '') : ($_POST['name'] ?? '') , ENT_QUOTES, 'UTF-8') ?>"
                                                required
                                                maxlength="<?= CategoryController::MAX_NAME_LENGTH ?? 50 ?>"
                                                placeholder="Ej: Alimentación, Transporte">
@@ -60,15 +63,15 @@ if (!isset($categoryController)) {
                                     <div class="form-group-custom mb-3-custom">
                                         <label for="categoryPercentage" class="form-label-custom">Porcentaje (%)</label>
                                         <input type="number" name="percentage" id="categoryPercentage" class="form-control-custom"
-                                               value="<?= htmlspecialchars($action == 'edit' ? ($category['percentage'] ?? '') : ($_POST['percentage'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                               value="<?= htmlspecialchars(($action == 'edit' && isset($category)) ? ($category['percentage'] ?? '') : ($_POST['percentage'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                                                min="0.01" max="100" step="0.01" required
                                                placeholder="Ej: 10.50">
                                         <span class="text-danger" id="categoryPercentageError"></span>
                                     </div>
 
                                     <div class="d-flex-custom justify-content-end-custom gap-2-custom">
-                                        <button type="submit" class="btn btn-<?= $action == 'register' ? 'primary' : 'warning' ?> btn-sm">
-                                            <i class="fas fa-save"></i> <?= $action == 'register' ? 'Guardar' : 'Actualizar' ?>
+                                        <button type="submit" class="btn btn-<?= ($action == 'edit' && isset($category)) ? 'warning' : 'primary' ?> btn-sm">
+                                            <i class="fas fa-save"></i> <?= ($action == 'edit' && isset($category)) ? 'Actualizar' : 'Guardar' ?>
                                         </button>
                                         <a href="index.php?controller=category" class="btn btn-secondary btn-sm">
                                             <i class="fas fa-times-circle"></i> Cancelar
