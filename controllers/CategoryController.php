@@ -80,6 +80,11 @@ class CategoryController {
                 throw new Exception("ID de categoría inválido para actualizar.");
             }
 
+            // Check if the category is in use before allowing update
+            if ($this->isCategoryInUse($id)) {
+                throw new Exception("No se puede editar: la categoría tiene gastos asociados.");
+            }
+
             $name = trim($name);
 
             if (empty($name)) {

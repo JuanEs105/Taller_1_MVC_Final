@@ -13,7 +13,7 @@ if (!isset($categoryController)) {
 
     if ($message_text) {
         // Determine message type based on content
-        if (stripos($message_text, 'Error') !== false || stripos($message_text, 'no encontrado') !== false || stripos($message_text, 'inválido') !== false || stripos($message_text, 'permitidos') !== false || stripos($message_text, 'requerido') !== false || stripos($message_text, 'debe ser') !== false || stripos($message_text, 'existe') !== false) {
+        if (stripos($message_text, 'Error') !== false || stripos($message_text, 'no encontrado') !== false || stripos($message_text, 'inválido') !== false || stripos($message_text, 'permitidos') !== false || stripos($message_text, 'requerido') !== false || stripos($message_text, 'debe ser') !== false || stripos($message_text, 'existe') !== false || stripos($message_text, 'No se puede editar') !== false) {
             $message_type = 'danger';
         } elseif (stripos($message_text, 'correctamente') !== false || stripos($message_text, 'sin cambios') !== false) {
             $message_type = 'success';
@@ -37,6 +37,10 @@ if (!isset($categoryController)) {
             <?php
             // Show form for 'register' action or 'edit' action if a category is loaded
             if (isset($action) && ($action == 'register' || ($action == 'edit' && isset($category)))):
+                $isCategoryInUse = false;
+                if ($action == 'edit' && isset($category)) {
+                    $isCategoryInUse = $categoryController->isCategoryInUse($category['id']);
+                }
             ?>
                 <div class="row-custom mb-4-custom">
                     <div class="col-md-6-custom mx-auto">
@@ -45,6 +49,11 @@ if (!isset($categoryController)) {
                                 <?= ($action == 'edit' && isset($category)) ? 'Editar Categoría' : 'Nueva Categoría' ?>
                             </div>
                             <div class="card-body-custom">
+                                <?php if ($isCategoryInUse && $action == 'edit'): ?>
+                                    <div class="alert danger">
+                                        No se puede editar esta categoría porque tiene gastos asociados.
+                                    </div>
+                                <?php endif; ?>
                                 <form id="categoryForm" method="POST" action="index.php?controller=category&action=<?= ($action == 'edit' && isset($category)) ? 'update' : 'register' ?>">
                                     <?php if (isset($action) && $action == 'edit' && isset($category)): ?>
                                         <input type="hidden" name="id" value="<?= htmlspecialchars($category['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
@@ -56,7 +65,8 @@ if (!isset($categoryController)) {
                                                value="<?= htmlspecialchars(($action == 'edit' && isset($category)) ? ($category['name'] ?? '') : ($_POST['name'] ?? '') , ENT_QUOTES, 'UTF-8') ?>"
                                                required
                                                maxlength="<?= CategoryController::MAX_NAME_LENGTH ?? 50 ?>"
-                                               placeholder="Ej: Alimentación, Transporte">
+                                               placeholder="Ej: Alimentación, Transporte"
+                                               <?= ($action == 'edit' && $isCategoryInUse) ? 'disabled' : '' ?>>
                                         <span class="text-danger" id="categoryNameError"></span>
                                     </div>
 
@@ -65,12 +75,14 @@ if (!isset($categoryController)) {
                                         <input type="number" name="percentage" id="categoryPercentage" class="form-control-custom"
                                                value="<?= htmlspecialchars(($action == 'edit' && isset($category)) ? ($category['percentage'] ?? '') : ($_POST['percentage'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                                                min="0.01" max="100" step="0.01" required
-                                               placeholder="Ej: 10.50">
+                                               placeholder="Ej: 10.50"
+                                               <?= ($action == 'edit' && $isCategoryInUse) ? 'disabled' : '' ?>>
                                         <span class="text-danger" id="categoryPercentageError"></span>
                                     </div>
 
                                     <div class="d-flex-custom justify-content-end-custom gap-2-custom">
-                                        <button type="submit" class="btn btn-<?= ($action == 'edit' && isset($category)) ? 'warning' : 'primary' ?> btn-sm">
+                                        <button type="submit" class="btn btn-<?= ($action == 'edit' && isset($category)) ? 'warning' : 'primary' ?> btn-sm"
+                                                <?= ($action == 'edit' && $isCategoryInUse) ? 'disabled' : '' ?>>
                                             <i class="fas fa-save"></i> <?= ($action == 'edit' && isset($category)) ? 'Actualizar' : 'Guardar' ?>
                                         </button>
                                         <a href="index.php?controller=category" class="btn btn-secondary btn-sm">
@@ -116,11 +128,17 @@ if (!isset($categoryController)) {
                                     </td>
                                     <td>
                                         <div class="d-flex-custom gap-2-custom">
-                                            <a href="index.php?controller=category&action=edit&id=<?= htmlspecialchars($cat['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
-                                               class="btn btn-primary btn-sm"
-                                               title="Editar categoría">
-                                               <i class="fas fa-edit"></i> Editar
-                                            </a>
+                                            <?php if (!$enUso): ?>
+                                                <a href="index.php?controller=category&action=edit&id=<?= htmlspecialchars($cat['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
+                                                   class="btn btn-primary btn-sm"
+                                                   title="Editar categoría">
+                                                   <i class="fas fa-edit"></i> Editar
+                                                </a>
+                                            <?php else: ?>
+                                                <button class="btn btn-primary btn-sm disabled" title="No se puede editar: tiene gastos asociados">
+                                                    <i class="fas fa-edit"></i> Editar
+                                                </button>
+                                            <?php endif; ?>
 
                                             <?php if (!$enUso): ?>
                                                 <a href="index.php?controller=category&action=delete&id=<?= htmlspecialchars($cat['id'] ?? '', ENT_QUOTES, 'UTF-8') ?>"
